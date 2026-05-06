@@ -75,6 +75,6 @@
   - Phase G structured retry prompt builder.
   - Done when: a deliberately-failed tool call triggers exactly 1 retry that succeeds.
 
-- [ ] **2.3.3 pg_cron re-validation**
+- [x] **2.3.3 pg_cron re-validation**
   - Job: every 30 min enqueue `pending` and `>1h-old` findings.
   - Done when: `SELECT * FROM cron.job` shows the row.
