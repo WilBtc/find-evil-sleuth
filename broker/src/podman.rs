@@ -136,6 +136,98 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
             }
             Ok(v)
         }
+        // icat --- extract file content by inode
+        "icat" => {
+            let mut v = vec!["icat".into()];
+            if let Some(off) = args.get("offset").and_then(|x| x.as_i64()) {
+                v.push("-o".into()); v.push(off.to_string());
+            }
+            v.push(args.get("image").and_then(|x| x.as_str())
+                .context("icat.args.image missing")?.to_string());
+            v.push(args.get("inode").and_then(|x| x.as_i64())
+                .context("icat.args.inode missing")?.to_string());
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
+            Ok(v)
+        }
+        // tsk_recover --- recover allocated/deleted files
+        "tsk_recover" => {
+            let mut v = vec!["tsk_recover".into()];
+            if let Some(off) = args.get("offset").and_then(|x| x.as_i64()) {
+                v.push("-o".into()); v.push(off.to_string());
+            }
+            v.push("-e".into());
+            v.push(args.get("image").and_then(|x| x.as_str())
+                .context("tsk_recover.args.image missing")?.to_string());
+            v.push(args.get("output_dir").and_then(|x| x.as_str())
+                .context("tsk_recover.args.output_dir missing")?.to_string());
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
+            Ok(v)
+        }
+        // bulk_extractor --- carve IOCs from disk images
+        "bulk_extractor" => {
+            let mut v = vec!["bulk_extractor".into()];
+            v.push("-o".into());
+            v.push(args.get("output_dir").and_then(|x| x.as_str())
+                .context("bulk_extractor.args.output_dir missing")?.to_string());
+            v.push(args.get("image").and_then(|x| x.as_str())
+                .context("bulk_extractor.args.image missing")?.to_string());
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
+            Ok(v)
+        }
+        // yara --- scan with YARA rules
+        "yara" => {
+            let mut v = vec!["yara".into()];
+            if args.get("recursive").and_then(|x| x.as_bool()).unwrap_or(false) {
+                v.push("-r".into());
+            }
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
+            v.push(args.get("rules").and_then(|x| x.as_str())
+                .context("yara.args.rules missing")?.to_string());
+            v.push(args.get("target").and_then(|x| x.as_str())
+                .context("yara.args.target missing")?.to_string());
+            Ok(v)
+        }
+        // log2timeline.py --- build plaso timeline
+        // Usage: log2timeline.py [opts] --storage_file PATH SOURCE
+        "log2timeline" => {
+            let mut v = vec!["log2timeline.py".into()];
+            v.push("--storage_file".into());
+            v.push(args.get("output_file").and_then(|x| x.as_str())
+                .context("log2timeline.args.output_file missing")?.to_string());
+            if let Some(parsers) = args.get("parsers").and_then(|x| x.as_str()) {
+                v.push("--parsers".into()); v.push(parsers.to_string());
+            }
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
+            v.push(args.get("image").and_then(|x| x.as_str())
+                .context("log2timeline.args.image missing")?.to_string());
+            Ok(v)
+        }
+        // psort.py --- sort/filter a plaso storage file
+        "psort" => {
+            let mut v = vec!["psort.py".into()];
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
+            v.push("-o".into()); v.push("dynamic".into());
+            v.push("-w".into());
+            v.push(args.get("output_file").and_then(|x| x.as_str())
+                .context("psort.args.output_file missing")?.to_string());
+            let storage = args.get("storage_file").or_else(|| args.get("input"))
+                .and_then(|x| x.as_str())
+                .context("psort.args.storage_file missing")?;
+            v.push(storage.to_string());
+            Ok(v)
+        }
         other => anyhow::bail!("no argv builder registered for tool: {other}"),
     }
 }

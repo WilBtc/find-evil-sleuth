@@ -43,7 +43,7 @@
   - Done when: `claude --print --agent triage --case <id>` populates `case_plan` for a synthetic 3-evidence case.
   - Touch: `.claude/skills/find-evil/dfir-triage/SKILL.md`, `.claude/agents/find-evil/triage.md`.
 
-- [ ] **2.2.2 Skill + agent `disk-forensics`**
+- [x] **2.2.2 Skill + agent `disk-forensics`**
   - Done when: solo run on phase15 mini-case produces ≥10 disk findings rows.
   - Touch: `.claude/skills/find-evil/disk-forensics/SKILL.md`, `.claude/agents/find-evil/disk-specialist.md`.
 
