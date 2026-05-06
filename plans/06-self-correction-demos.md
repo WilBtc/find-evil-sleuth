@@ -18,24 +18,34 @@ docker compose -f docker/compose.yaml up -d
 ./bin/sb describe vol3 >/dev/null
 ```
 
-`inject-corruption.sh`:
+`inject-corruption.sh` (revised after R3/R4 validation 2026-05-06):
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 case_dir="evidence-samples/$1"
 
-# Tool crash injection — wrong vol3 profile in case manifest
-jq '.memory.os_profile = "Win10x64_19045_PROBABLY_WRONG"' \
+# Tool-crash injection #1 — wrong OS family in triage hint
+# (vol3 auto-detects profile so a "wrong profile" hint won't crash it;
+#  but a wrong-family plugin invocation does crash with a clear signature)
+jq '.memory.os_family_hint = "linux"' \
   "$case_dir/manifest.json" > "$case_dir/manifest.json.tmp"
 mv "$case_dir/manifest.json.tmp" "$case_dir/manifest.json"
 
-# Pcap truncation injection — chop last 4096 bytes mid-packet
+# Pcap-truncation injection #2 — tshark exits 2 with
+# "appears to have been cut short in the middle of a packet"
+# editcap copies what's recoverable (exit 0 + warning), tshark on
+# recovered file exits 0.
 pcap="$case_dir/network/lonewolf.pcap"
 size=$(stat -c%s "$pcap")
 truncate -s $((size - 4096)) "$pcap"
 
 echo "[+] Corruption injected — case is now demo-ready."
 ```
+
+**Validated 2026-05-06 (pre-build):**
+- tshark on truncated pcap → exit 2, stderr `appears to have been cut short in the middle of a packet`. `editcap` recovers (exit 0 with same warning), subsequent tshark on recovered file exits 0.
+- vol3 with wrong inputs → exit 1, stderr `Unsatisfied requirement` / `translation layer requirement was not fulfilled` / `symbol table requirement`. Plugin-family mismatch (linux.pslist on Win image) gives the cleanest demo signature.
+- **Broker gotcha:** vol3 piped through `tail` masks its exit code (pipe writes 0). Broker MUST NOT pipe vol3 stdout. Use `-o output_dir` instead and read the file.
 
 ## Run (on camera)
 

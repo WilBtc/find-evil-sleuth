@@ -91,6 +91,10 @@ Start from `runc` default profile, additionally deny:
 
 Allow listed forensics-needed syscalls verified by running each tool once on baseline evidence and capturing strace.
 
+## Critical: do NOT pipe vol3 stdout
+
+vol3's exit code is masked when its stdout is consumed by a pipe (e.g. `vol ... | tail`). Validated 2026-05-06: piped run returned exit 0 even though vol3 itself exited 1. Broker MUST run vol3 as a direct child with stdout redirected to a file (or use vol3's `-o output_dir` flag), then read the file. Do not insert `tee`/`tail`/`head` between podman and the broker's stream writer for vol3 specifically. (Other tools are fine; this is a vol3 quirk.)
+
 ## Streaming stdout/stderr to evidence-store
 
 Broker pipes podman's `stdout`/`stderr` through a writer that:

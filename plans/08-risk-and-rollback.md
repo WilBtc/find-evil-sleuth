@@ -4,8 +4,9 @@
 |---|---|---|---|---|---|
 | R1 | Postgres extension version conflict (timescaledb + age + cron) | M | High | Lock all versions in Dockerfile build args; CI smoke job rebuilds image and runs `\dx` check | Pin to known-good combo from compose stack on g1; if AGE breaks, fall back to relational graph (path closures via recursive CTE) — already have schema |
 | R2 | podman seccomp blocks legitimate forensics syscall | H | Med | Per-tool seccomp override file; baseline strace run during Phase 1 | Per-tool override registered in `tool_specs.seccomp_profile`; documented exceptions |
-| R3 | vol3 windows.malfind unreliable on arbitrary memory | M | High | Stick to LoneWolf for demo; document supported profiles only | Pre-compute correct profile, store in repo; demo case is fixed |
-| R4 | tshark tolerates truncated pcap → demo #2 doesn't fire | M | High | Truncate deeper, assert non-zero exit in Phase 4 | Use `tcpdump -r` instead (stricter parser) as fallback recovery path |
+| R3 | vol3 crash on demand for demo | ~~M~~ **Closed 2026-05-06** | High | **Validated:** wrong-OS-family plugin (e.g. linux.pslist on Win image) → exit 1, parseable stderr. vol3 auto-detects profile, so original "wrong profile" injection wouldn't have worked. Switched to family-mismatch in plan 06. | n/a |
+| R3a | vol3 exit code masked when piped | **New 2026-05-06** | Med | Broker must not pipe vol3; use `-o output_dir` and read file | Documented in plan 02 |
+| R4 | tshark tolerates truncated pcap → demo #2 doesn't fire | ~~M~~ **Closed 2026-05-06** | High | **Validated:** tshark exits 2 on truncated pcap, editcap recovers (exit 0 with warning), recovered file reads cleanly | n/a |
 | R5 | Hub IP drift bites again (`feedback_hub_ip_drift.md`) | L | Med | All addresses via `.env` only, single source of truth | Sed-fix script in `scripts/fix-ips.sh` |
 | R6 | Anthropic rate-limit on insa-server-2 mid-run | M | High | Mirror runs to g1 (separate account), proven pattern | Switch driver to g1 with `--remote-host g1.tail` flag |
 | R7 | YouTube processing delay before deadline | M | High | Upload final take ≥24h before deadline | Vimeo backup upload as plan B |
