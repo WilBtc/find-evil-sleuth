@@ -47,7 +47,7 @@
   - Done when: solo run on phase15 mini-case produces ≥10 disk findings rows.
   - Touch: `.claude/skills/find-evil/disk-forensics/SKILL.md`, `.claude/agents/find-evil/disk-specialist.md`.
 
-- [ ] **2.2.3 Skill + agent `memory-forensics` (scaffold; real-evidence run deferred)**
+- [x] **2.2.3 Skill + agent `memory-forensics` (scaffold; real-evidence run deferred)**
   - **No real memory image is on dev-server yet** — `cases/synthetic-triage-001/memory.mem` is a 4-byte placeholder. Phase 4 will fetch SANS LoneWolf and retest. For now build the skill + agent files and exercise the broker contract using a stub fixture.
   - Done when: (a) `.claude/skills/find-evil/memory-forensics/SKILL.md` and `.claude/agents/find-evil/memory-specialist.md` exist with a vol3 playbook; (b) running the memory-specialist via `claude --print --append-system-prompt …` produces a syntactically valid `sb describe vol3` invocation and at least one *synthetic* finding row written via `es record-finding` against a fixture stdout file (script: `tests/fixtures/vol3-pslist-sample.txt` — claude must create this fixture from a real vol3 pslist man-page-style output if no sample is available); (c) BACKLOG ticked.
   - Touch: skill + agent + fixture file.

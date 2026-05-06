@@ -1,0 +1,33 @@
+Volatility 3 Framework 2.7.0
+Progress:  100.00		PDB scanning finished
+PID	PPID	ImageFileName	Offset(V)	Threads	Handles	SessionId	Wow64	CreateTime	ExitTime	File output
+
+4	0	System	0xfa8000ca0040	96	499	N/A	False	2023-09-15 14:22:01.000000 	N/A	Disabled
+272	4	smss.exe	0xfa8001184040	2	29	N/A	False	2023-09-15 14:22:01.000000 	N/A	Disabled
+356	344	csrss.exe	0xfa80019a8530	11	460	0	False	2023-09-15 14:22:03.000000 	N/A	Disabled
+392	344	wininit.exe	0xfa8001a24060	3	77	0	False	2023-09-15 14:22:03.000000 	N/A	Disabled
+404	384	csrss.exe	0xfa8001a77310	12	368	1	False	2023-09-15 14:22:03.000000 	N/A	Disabled
+448	384	winlogon.exe	0xfa8001ac9060	3	113	1	False	2023-09-15 14:22:03.000000 	N/A	Disabled
+496	392	services.exe	0xfa8001ae9b00	11	200	0	False	2023-09-15 14:22:03.000000 	N/A	Disabled
+504	392	lsass.exe	0xfa8001aec940	9	566	0	False	2023-09-15 14:22:03.000000 	N/A	Disabled
+512	392	lsm.exe	0xfa8001af0b00	10	147	0	False	2023-09-15 14:22:03.000000 	N/A	Disabled
+608	496	svchost.exe	0xfa8001b5f060	11	350	0	False	2023-09-15 14:22:04.000000 	N/A	Disabled
+668	496	svchost.exe	0xfa8001b88060	7	254	0	False	2023-09-15 14:22:04.000000 	N/A	Disabled
+736	496	svchost.exe	0xfa8001bc4060	21	458	0	False	2023-09-15 14:22:04.000000 	N/A	Disabled
+832	496	svchost.exe	0xfa8001bf4b00	37	988	0	False	2023-09-15 14:22:04.000000 	N/A	Disabled
+880	496	svchost.exe	0xfa8001c1f060	11	283	0	False	2023-09-15 14:22:04.000000 	N/A	Disabled
+952	496	svchost.exe	0xfa8001c50910	14	355	0	False	2023-09-15 14:22:04.000000 	N/A	Disabled
+1040	496	svchost.exe	0xfa8001c89060	16	422	0	False	2023-09-15 14:22:05.000000 	N/A	Disabled
+1096	496	svchost.exe	0xfa8001cba060	27	805	0	False	2023-09-15 14:22:05.000000 	N/A	Disabled
+1216	496	spoolsv.exe	0xfa8001d0a060	13	278	0	False	2023-09-15 14:22:06.000000 	N/A	Disabled
+1264	496	svchost.exe	0xfa8001d2d060	18	316	0	False	2023-09-15 14:22:06.000000 	N/A	Disabled
+1472	1040	taskhost.exe	0xfa8001e15b00	8	148	1	False	2023-09-15 14:22:08.000000 	N/A	Disabled
+1532	448	dwm.exe	0xfa8001e37060	3	69	1	False	2023-09-15 14:22:08.000000 	N/A	Disabled
+1568	1040	explorer.exe	0xfa8001e50b00	36	1057	1	False	2023-09-15 14:22:08.000000 	N/A	Disabled
+1844	496	SearchIndexer.	0xfa8001f3db00	13	594	0	False	2023-09-15 14:22:12.000000 	N/A	Disabled
+1940	1568	cmd.exe	0xfa8002082060	1	21	1	False	2023-09-15 14:25:31.000000 	N/A	Disabled
+1952	1940	powershell.exe	0xfa800208a060	6	402	1	False	2023-09-15 14:25:31.000000 	N/A	Disabled
+2016	1952	svchost.exe	0xfa80020b4060	1	42	1	False	2023-09-15 14:25:33.000000 	N/A	Disabled
+2104	2016	a8f3c2d1.exe	0xfa80020f8060	3	88	1	False	2023-09-15 14:25:35.000000 	N/A	Disabled
+2240	496	svchost.exe	0xfa800215c060	5	111	0	False	2023-09-15 14:26:01.000000 	N/A	Disabled
+2468	2016	cmd.exe	0xfa8002234060	1	22	1	False	2023-09-15 14:26:45.000000 	N/A	Disabled
