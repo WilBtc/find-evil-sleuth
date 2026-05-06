@@ -8,7 +8,7 @@
 //!   4. Write back to findings.embedding.
 //!   5. If cosine_distance < 0.08 to any existing embedding, set superseded_by.
 //!
-//! Ollama endpoint: env OLLAMA_URL (default http://100.116.33.91:11434)
+//! Ollama endpoint: env OLLAMA_URL (default http://127.0.0.1:11434)
 
 use anyhow::{Context, Result};
 use reqwest::Client;
@@ -37,7 +37,7 @@ struct EmbedResponse {
 }
 
 fn ollama_url() -> String {
-    env::var("OLLAMA_URL").unwrap_or_else(|_| "http://100.116.33.91:11434".into())
+    env::var("OLLAMA_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".into())
 }
 
 fn vec_to_pg_literal(v: &[f32]) -> String {
