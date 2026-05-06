@@ -27,7 +27,7 @@
   - Done when: `psql -c "SELECT * FROM cypher('case_graph', $$MATCH (n) RETURN count(n)$$) AS (n agtype)"` works.
   - Touch: `migrations/003_age_helpers.sql`.
 
-- [ ] **2.1.4 pgvector embedding worker (skeleton)**
+- [x] **2.1.4 pgvector embedding worker (skeleton)**
   - `es worker --embeddings` listens on NOTIFY/LISTEN, calls Ollama nomic-embed-text on g1, writes 1536-dim.
   - Done when: insert a finding, see embedding column populated within 10s.
   - Touch: `evidence-store/src/worker.rs`, `evidence-store/src/main.rs` (add Worker subcommand).

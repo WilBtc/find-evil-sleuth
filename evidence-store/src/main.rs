@@ -9,6 +9,7 @@
 mod db;
 mod findings;
 mod cite;
+mod worker;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -38,6 +39,12 @@ enum Cmd {
     },
     /// Print the audit trace for a finding (the criterion-5 killer command).
     Cite { finding_id: String },
+    /// Background worker subcommands.
+    Worker {
+        /// Start the pgvector embedding worker (LISTEN/NOTIFY → Ollama).
+        #[arg(long)]
+        embeddings: bool,
+    },
 }
 
 #[tokio::main]
@@ -68,6 +75,13 @@ async fn main() -> Result<()> {
         Cmd::Cite { finding_id } => {
             let trace = cite::cite(&pool, &finding_id).await?;
             println!("{}", serde_json::to_string_pretty(&trace)?);
+        }
+        Cmd::Worker { embeddings } => {
+            if embeddings {
+                worker::run(pool).await?;
+            } else {
+                anyhow::bail!("specify at least one worker flag (e.g. --embeddings)");
+            }
         }
     }
     Ok(())

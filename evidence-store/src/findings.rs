@@ -50,5 +50,11 @@ pub async fn record(
     .await?;
 
     tx.commit().await?;
+
+    sqlx::query("SELECT pg_notify('embed_findings', $1)")
+        .bind(&finding_id)
+        .execute(pool)
+        .await?;
+
     Ok(finding_id)
 }
