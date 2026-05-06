@@ -24,7 +24,7 @@ trimmed="$(printf '%s' "$cmd" | sed -E 's/^[[:space:]]+//')"
 # user-controlled args to that command, but those tokens themselves cannot
 # launch a new program because shell metachars (;, &&, ||, |, $()) are also
 # checked against the allowlist for each segment via a simple split.
-allow='^(\.\/bin\/sb|\.\/bin\/es|cargo|jq|grep|awk|sed|head|tail|cut|sort|uniq|wc|cat|column|date|test|\[|echo|printf|true|false|tr|env|pwd|ls|find|stat|file|tee|hexdump|xxd|git[[:space:]]+(status|diff|log|show|branch|remote)|docker[[:space:]]+compose[[:space:]]+(up|down|ps|logs)|psql)([[:space:]]|$)'
+allow='^(\.\/bin\/sb|\.\/bin\/es|cargo|jq|grep|awk|sed|head|tail|cut|sort|uniq|wc|cat|column|date|test|\[|echo|printf|true|false|tr|env|pwd|ls|find|stat|file|tee|hexdump|xxd|git[[:space:]]+(status|diff|log|show|branch|remote|add|commit|push|pull|fetch)|docker[[:space:]]+compose[[:space:]]+(up|down|ps|logs)|psql|ssh|chmod|mkdir|touch|bash|sh|podman|nohup|sleep|tee)([[:space:]]|$)'
 
 deny_reason() {
     cat <<EOF >&2
