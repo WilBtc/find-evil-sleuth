@@ -22,7 +22,7 @@
   - Done when: `podman image ls find-evil-sleuth/plaso` shows the image AND `podman run --rm find-evil-sleuth/plaso log2timeline.py --version` returns the plaso version line.
   - Touch: `broker/tools/plaso.Dockerfile`.
 
-- [ ] **2.1.3 AGE graph schema + helpers**
+- [x] **2.1.3 AGE graph schema + helpers**
   - Cypher MERGE templates per node/edge type; SQL function `sp_graph_assert(label, props_json)`.
   - Done when: `psql -c "SELECT * FROM cypher('case_graph', $$MATCH (n) RETURN count(n)$$) AS (n agtype)"` works.
   - Touch: `migrations/003_age_helpers.sql`.
