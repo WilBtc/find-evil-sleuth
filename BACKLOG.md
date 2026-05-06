@@ -61,7 +61,7 @@
   - Re-executes claim's tool_call with `--validation`, sets `validation_status`.
   - Done when: validator marks 100% of step-2.2.2 findings as confirmed/refuted/inconclusive.
 
-- [ ] **2.2.6 Skill + agent `ir-narrator`**
+- [x] **2.2.6 Skill + agent `ir-narrator`**
   - Read-only, emits `report.md` with `[F-NNN]` cites per paragraph.
   - Done when: report passes the citation hook check.
 
