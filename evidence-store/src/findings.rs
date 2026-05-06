@@ -16,10 +16,12 @@ pub async fn record(
 ) -> Result<String> {
     let mut tx = pool.begin().await?;
 
+    // Globally monotonic F-NNN — finding_id is a global primary key.
+    // Parse current maximum numeric suffix and add 1.
     let next_n: (i64,) = sqlx::query_as(
-        r#"SELECT COUNT(*)::bigint + 1 FROM findings WHERE case_id = $1"#,
+        r#"SELECT COALESCE(MAX(NULLIF(regexp_replace(finding_id,'\D','','g'),'')::bigint),0) + 1
+             FROM findings"#,
     )
-    .bind(case_id)
     .fetch_one(&mut *tx)
     .await?;
     let finding_id = format!("F-{:03}", next_n.0);
