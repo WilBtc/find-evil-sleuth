@@ -7,7 +7,7 @@
 > **Per-iteration cap:** 30 min wall, $2 cost guardian.
 
 ## P2.1 Substrate prep
-- [ ] **2.1.1 Register all 9 forensics tools in `tool_specs`**
+- [x] **2.1.1 Register all 9 forensics tools in `tool_specs`**
   - Add: mmls, fls, icat, tsk_recover, log2timeline, plaso/psort, vol3, tshark, editcap, zeek (via image), suricata (via image), yara, bulk_extractor.
   - Done when: `./bin/sb list-tools` prints ≥9 rows AND `./bin/sb describe vol3` returns the spec.
   - Touch: `migrations/002_tool_specs_seed.sql`, push, run on dev-server.
