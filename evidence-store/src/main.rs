@@ -37,6 +37,12 @@ enum Cmd {
         #[arg(long)] mitre: Option<String>,
         #[arg(long, default_value = "inferred")] confidence: String,
     },
+    /// Set validation_status on a finding (confirmed | refuted | inconclusive | drift).
+    SetValidation {
+        #[arg(long, value_name = "FINDING_ID")] finding_id: String,
+        #[arg(long, value_name = "STATUS")] status: String,
+        #[arg(long, value_name = "UUID")] validation_tool_call_id: Option<uuid::Uuid>,
+    },
     /// Print the audit trace for a finding (the criterion-5 killer command).
     Cite { finding_id: String },
     /// Background worker subcommands.
@@ -71,6 +77,10 @@ async fn main() -> Result<()> {
                 &confidence,
             ).await?;
             println!("{}", id);
+        }
+        Cmd::SetValidation { finding_id, status, validation_tool_call_id } => {
+            findings::set_validation(&pool, &finding_id, &status, validation_tool_call_id).await?;
+            println!("set {} → {}", finding_id, status);
         }
         Cmd::Cite { finding_id } => {
             let trace = cite::cite(&pool, &finding_id).await?;

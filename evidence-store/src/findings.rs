@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -57,4 +57,49 @@ pub async fn record(
         .await?;
 
     Ok(finding_id)
+}
+
+/// Update `validation_status` and `last_validated_at` on an existing finding.
+///
+/// `status` must be one of: confirmed | refuted | inconclusive | drift.
+/// `validation_tool_call_id` is the broker call UUID that was used to re-run the
+/// original tool; it can be None when the validator makes the determination
+/// without a re-execution (e.g. inconclusive due to missing evidence).
+pub async fn set_validation(
+    pool: &PgPool,
+    finding_id: &str,
+    status: &str,
+    validation_tool_call_id: Option<Uuid>,
+) -> Result<()> {
+    match status {
+        "confirmed" | "refuted" | "inconclusive" | "drift" => {}
+        other => bail!("invalid validation status {:?}; must be confirmed|refuted|inconclusive|drift", other),
+    }
+
+    let rows = sqlx::query(
+        r#"UPDATE findings
+              SET validation_status      = $2,
+                  last_validated_at      = now()
+            WHERE finding_id             = $1"#,
+    )
+    .bind(finding_id)
+    .bind(status)
+    .execute(pool)
+    .await?
+    .rows_affected();
+
+    if rows == 0 {
+        bail!("finding {} not found", finding_id);
+    }
+
+    if let Some(tc_id) = validation_tool_call_id {
+        sqlx::query(
+            r#"UPDATE tool_calls SET is_validation = true WHERE tool_call_id = $1"#,
+        )
+        .bind(tc_id)
+        .execute(pool)
+        .await?;
+    }
+
+    Ok(())
 }

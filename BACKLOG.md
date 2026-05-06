@@ -57,7 +57,7 @@
   - Done when: (a) skill + agent files; (b) generate a tiny valid pcap (≥3 packets, like `tests/phase1_5_smoke.sh` does for FAT16) under `tests/fixtures/`; (c) network-specialist run produces ≥10 network findings via real `tshark`/`zeek` against the tiny fixture.
   - Touch: skill + agent + tiny pcap fixture.
 
-- [ ] **2.2.5 Skill + agent `findings-validator`**
+- [x] **2.2.5 Skill + agent `findings-validator`**
   - Re-executes claim's tool_call with `--validation`, sets `validation_status`.
   - Done when: validator marks 100% of step-2.2.2 findings as confirmed/refuted/inconclusive.
 
