@@ -66,7 +66,7 @@
   - Done when: report passes the citation hook check.
 
 ## P2.3 Outloop
-- [ ] **2.3.1 ADW driver `adws/investigate.py`**
+- [x] **2.3.1 ADW driver `adws/investigate.py`**
   - State machine (plan 05): TRIAGE → DISPATCH → SPECIALISTS → VALIDATING → NARRATING → DONE.
   - Done when: `./scripts/investigate.sh ./cases/mini/` emits a complete `report.md`.
   - Touch: `adws/investigate.py`, `scripts/investigate.sh`.
