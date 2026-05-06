@@ -31,7 +31,7 @@ green "ok"
 
 step " 9/13  generate tiny FAT16 evidence image"
 img="$CASE_DIR/disk.img"
-[[ -f "$img" ]] || { dd if=/dev/zero of="$img" bs=1M count=4 2>/dev/null; mkfs.vfat -F16 "$img" >/dev/null; }
+[[ -f "$img" ]] || { dd if=/dev/zero of="$img" bs=1M count=32 2>/dev/null; mkfs.vfat -F16 "$img" >/dev/null; }
 ls -la "$img"
 green "ok"
 
