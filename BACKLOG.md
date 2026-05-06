@@ -32,6 +32,11 @@
   - Done when: insert a finding, see embedding column populated within 10s.
   - Touch: `evidence-store/src/worker.rs`, `evidence-store/src/main.rs` (add Worker subcommand).
 
+- [ ] **2.1.4b Verify live Ollama embedding once g1 service is back**
+  - Ollama on g1-avilion (`100.116.33.91:11434`) was unreachable 2026-05-06 — verify the worker's HTTP path against a real Ollama before P3 runs.
+  - Done when: insert a finding on a dev-server with `EMBED_URL` set to a reachable Ollama; observe non-zero embedding within 10 s.
+  - Touch: nothing (verification only) unless the embed call needs adjustment.
+
 ## P2.2 Skills + agents
 - [ ] **2.2.1 Skill `dfir-triage`**
   - Walks `/case`, classifies, writes `case_plan` rows.
