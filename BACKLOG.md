@@ -17,7 +17,7 @@
   - Plaso deferred to 2.1.2b (pip-from-source against ~30 forensic-library Python bindings fails on slim base — needs `log2timeline/plaso` upstream image).
   - Done when: `podman image ls find-evil-sleuth/*` lists ≥6.
 
-- [ ] **2.1.2b Plaso podman image (use upstream log2timeline/plaso base)**
+- [x] **2.1.2b Plaso podman image (use upstream log2timeline/plaso base)**
   - Switch `broker/tools/plaso.Dockerfile` to `FROM log2timeline/plaso:latest` (or pinned tag) — do NOT pip install plaso from source. Bake `log2timeline.py` + `psort.py` entrypoints. Keep nobody:nogroup user, /scratch tmpfs.
   - Done when: `podman image ls find-evil-sleuth/plaso` shows the image AND `podman run --rm find-evil-sleuth/plaso log2timeline.py --version` returns the plaso version line.
   - Touch: `broker/tools/plaso.Dockerfile`.
