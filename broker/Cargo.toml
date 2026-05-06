@@ -1,0 +1,28 @@
+[package]
+name        = "sleuth-broker"
+version.workspace     = true
+edition.workspace     = true
+license.workspace     = true
+authors.workspace     = true
+description = "Architectural guardrail: validated, sandboxed, audited tool execution for find-evil-sleuth."
+
+[[bin]]
+name = "sb"
+path = "src/main.rs"
+
+[dependencies]
+tokio        = { workspace = true }
+sqlx         = { workspace = true }
+serde        = { workspace = true }
+serde_json   = { workspace = true }
+clap         = { workspace = true }
+anyhow       = { workspace = true }
+thiserror    = { workspace = true }
+blake3       = { workspace = true }
+uuid         = { workspace = true }
+chrono       = { workspace = true }
+tracing      = { workspace = true }
+tracing-subscriber = { workspace = true }
+jsonschema   = { workspace = true }
+hex          = { workspace = true }
+toml         = { workspace = true }

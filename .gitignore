@@ -1,0 +1,35 @@
+# Build output
+target/
+**/*.rs.bk
+Cargo.lock.*
+
+# Evidence (huge, fetched by script, never committed)
+evidence-samples/lone-wolf/
+evidence-samples/*/
+!evidence-samples/README.md
+
+# Postgres data
+docker/postgres/pg_data/
+*.dump
+
+# Local env
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python venv (used only for local R3/R4 validation)
+.venv/
+
+# Claude conversation history if anything lands here
+.claude/sessions/
+
+# Submission artifacts (built fresh per run)
+submission/
+
+# Logs
+*.log
