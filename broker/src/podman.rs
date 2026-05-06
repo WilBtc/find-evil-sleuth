@@ -1,27 +1,141 @@
-//! Podman sandbox runner. Phase 1.5 lands here.
+//! Podman sandbox runner.
 //!
 //! Builds a `podman run` invocation from a ToolSpec + validated args, runs it
-//! with rootless + seccomp + read-only + cap-drop ALL + no-net, streams stdout
-//! and stderr through blake3 hashers into the evidence-store blob dir, returns
-//! exit code + duration + content hashes.
+//! rootless with seccomp, read-only rootfs, dropped capabilities, no network.
+//! Streams stdout/stderr through blake3 hashers into the blob store.
 //!
-//! NOTE for vol3: do NOT pipe its stdout (exit code masking — see plan 02).
-//! Use `--rm -e VOL_OUTDIR=/scratch/out` and read the file post-run.
+//! NOTE for vol3 (validated 2026-05-06): vol3 exit code is masked when stdout
+//! is consumed by a pipe. We capture stdout via tokio::process::Command into
+//! a Vec<u8> directly (no shell pipe) — exit code is preserved.
 
-#![allow(dead_code)]
-
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crate::allowlist::ToolSpec;
 use serde_json::Value;
+use std::path::Path;
+use std::process::Stdio;
+use std::time::Instant;
+use tokio::process::Command;
 
 pub struct RunResult {
     pub exit_code:    i32,
     pub duration_ms:  i32,
-    pub stdout_hash:  [u8; 32],
-    pub stderr_hash:  [u8; 32],
+    pub stdout:       Vec<u8>,
+    pub stderr:       Vec<u8>,
     pub container_id: String,
 }
 
-pub async fn run(_spec: &ToolSpec, _args: &Value, _case_dir: &str) -> Result<RunResult> {
-    todo!("Phase 1.5 — wire podman invocation per plans/02-broker-design.md")
+pub async fn run(
+    spec: &ToolSpec,
+    args: &Value,
+    case_dir: &Path,
+    seccomp_path: &Path,
+) -> Result<RunResult> {
+    let started = Instant::now();
+    let mut cmd = Command::new("podman");
+
+    let case_dir_str = case_dir.canonicalize()
+        .with_context(|| format!("case_dir not accessible: {}", case_dir.display()))?
+        .display()
+        .to_string();
+
+    cmd.arg("run")
+       .arg("--rm")
+       .arg("--read-only")
+       .arg("--read-only-tmpfs")
+       .arg("--tmpfs").arg("/tmp:rw,size=512m,mode=1777")
+       .arg("--tmpfs").arg("/scratch:rw,size=2g")
+       .arg("--security-opt").arg("no-new-privileges")
+       .arg("--security-opt").arg(format!("seccomp={}", seccomp_path.display()))
+       .arg("--cap-drop").arg("ALL")
+       .arg("--user").arg("65534:65534")
+       .arg(format!("--memory={}m", spec.memory_mb))
+       .arg(format!("--memory-swap={}m", spec.memory_mb))
+       .arg(format!("--pids-limit={}", spec.pids_limit))
+       .arg("--cpus").arg("4")
+       .arg("--mount").arg(format!("type=bind,src={case_dir_str},dst=/case,ro"))
+       .arg(format!("--network={}", spec.network));
+
+    cmd.arg(&spec.image);
+    cmd.args(tool_argv(spec, args)?);
+
+    cmd.stdin(Stdio::null());
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+
+    let timeout = std::time::Duration::from_secs(spec.timeout_s as u64);
+    let child = cmd.spawn().context("podman run spawn")?;
+    let output = match tokio::time::timeout(timeout, child.wait_with_output()).await {
+        Ok(r) => r.context("podman child wait")?,
+        Err(_) => anyhow::bail!("tool exceeded timeout of {}s", spec.timeout_s),
+    };
+
+    Ok(RunResult {
+        exit_code:    output.status.code().unwrap_or(-1),
+        duration_ms:  started.elapsed().as_millis() as i32,
+        stdout:       output.stdout,
+        stderr:       output.stderr,
+        container_id: String::new(), // podman --rm; kept for future structured tracking
+    })
+}
+
+/// Map a tool's validated JSON args into a CLI argv vector.
+///
+/// Per-tool argv builders. Each tool has a tiny known shape after schema
+/// validation, so this is a small match — broker doesn't speculate.
+fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
+    match spec.tool.as_str() {
+        // sleuthkit fls --- list dir entries from a forensic image
+        "fls" => {
+            let mut v = vec!["fls".into()];
+            let img = args.get("image").and_then(|x| x.as_str())
+                .context("fls.args.image missing")?;
+            // The schema constrains image to ^/case/, so we can pass it as-is.
+            if let Some(off) = args.get("offset").and_then(|x| x.as_i64()) {
+                v.push("-o".into()); v.push(off.to_string());
+            }
+            if args.get("recursive").and_then(|x| x.as_bool()).unwrap_or(false) {
+                v.push("-r".into());
+            }
+            v.push(img.to_string());
+            Ok(v)
+        }
+        // mmls --- partition map
+        "mmls" => Ok(vec![
+            "mmls".into(),
+            args.get("image").and_then(|x| x.as_str())
+                .context("mmls.args.image missing")?.to_string(),
+        ]),
+        // tshark — pcap analysis
+        "tshark" => {
+            let mut v = vec!["tshark".into(), "-r".into(),
+                args.get("pcap").and_then(|x| x.as_str())
+                    .context("tshark.args.pcap missing")?.to_string()];
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
+            Ok(v)
+        }
+        // editcap — pcap recovery
+        "editcap" => Ok(vec![
+            "editcap".into(),
+            args.get("input").and_then(|x| x.as_str())
+                .context("editcap.args.input missing")?.to_string(),
+            args.get("output").and_then(|x| x.as_str())
+                .context("editcap.args.output missing")?.to_string(),
+        ]),
+        // vol3 — memory forensics. NEVER pipe vol3 stdout (see plan 02).
+        "vol3" => {
+            let mut v = vec!["vol".into(), "-q".into(),
+                "-f".into(),
+                args.get("memory_image").and_then(|x| x.as_str())
+                    .context("vol3.args.memory_image missing")?.to_string()];
+            v.push(args.get("plugin").and_then(|x| x.as_str())
+                .context("vol3.args.plugin missing")?.to_string());
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
+            Ok(v)
+        }
+        other => anyhow::bail!("no argv builder registered for tool: {other}"),
+    }
 }
