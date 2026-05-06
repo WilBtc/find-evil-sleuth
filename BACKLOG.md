@@ -71,7 +71,7 @@
   - Done when: `./scripts/investigate.sh ./cases/mini/` emits a complete `report.md`.
   - Touch: `adws/investigate.py`, `scripts/investigate.sh`.
 
-- [ ] **2.3.2 Self-correction analyzer `adws/self_correct.py`**
+- [x] **2.3.2 Self-correction analyzer `adws/self_correct.py`**
   - Phase G structured retry prompt builder.
   - Done when: a deliberately-failed tool call triggers exactly 1 retry that succeeds.
 

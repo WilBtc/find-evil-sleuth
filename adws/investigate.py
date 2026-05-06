@@ -21,6 +21,8 @@ from pathlib import Path
 import psycopg2
 import psycopg2.extras
 
+from adws.self_correct import SelfCorrector
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-7s  %(message)s",
@@ -345,7 +347,7 @@ class Investigator:
             )
             procs.append((spec, proc))
 
-        failed: list[str] = []
+        failed: list[tuple[str, str]] = []
         for spec, proc in procs:
             try:
                 _out, _err = proc.communicate(timeout=SPECIALIST_TIMEOUT_S)
@@ -353,21 +355,79 @@ class Investigator:
                 proc.kill()
                 _out, _err = proc.communicate()
                 log.warning("Specialist %s timed out", spec)
-                failed.append(spec)
+                failed.append((spec, _err[:2000] if _err else "timeout"))
                 continue
 
             rc = proc.returncode
             if rc != 0:
                 log.warning("Specialist %s exited %d", spec, rc)
-                failed.append(spec)
+                failed.append((spec, _err[:2000] if _err else ""))
             else:
                 log.info("  specialist %s done (rc=0)", spec)
             obs("Sleuth.specialist.finished",
                 {"case_id": self.case_id, "specialist": spec, "exit_code": rc})
 
-        if failed:
-            log.warning("Failed specialists: %s", failed)
+        if failed and not getattr(self, "_no_self_correct", False):
+            log.warning("Failed specialists: %s — entering SELF_CORRECTING",
+                        [s for s, _ in failed])
+            self._failed_specialists = failed
+            return "SELF_CORRECTING"
+        elif failed:
+            log.warning("Failed specialists (self-correct disabled): %s",
+                        [s for s, _ in failed])
 
+        return "VALIDATING"
+
+    # ------------------------------------------------------------------
+    # SELF_CORRECTING
+    # ------------------------------------------------------------------
+
+    def state_self_correcting(self) -> str:
+        log.info("=== SELF_CORRECTING ===")
+        self._set_status("self_correcting")
+
+        failed = getattr(self, "_failed_specialists", [])
+        if not failed:
+            failed_rows = db_query(
+                self.conn,
+                "SELECT specialist, stderr_tail FROM self_corrections "
+                "WHERE case_id=%s AND succeeded IS NULL ORDER BY created_at",
+                (self.case_id,),
+            )
+            failed = [(r["specialist"], r["stderr_tail"] or "") for r in failed_rows]
+
+        sc = SelfCorrector(conn=self.conn, obs_fn=obs)
+
+        for spec, stderr_tail in failed:
+            last_rows = db_query(
+                self.conn,
+                "SELECT failed_tool, failed_args, failed_exit, stderr_tail "
+                "FROM self_corrections "
+                "WHERE case_id=%s AND specialist=%s "
+                "ORDER BY created_at DESC LIMIT 1",
+                (self.case_id, spec),
+            )
+            if last_rows:
+                r = last_rows[0]
+                sc.attempt(
+                    case_id=self.case_id,
+                    specialist=spec,
+                    failed_tool=r["failed_tool"],
+                    failed_args=r["failed_args"] if isinstance(r["failed_args"], dict) else {},
+                    failed_exit=r["failed_exit"],
+                    stderr_tail=r["stderr_tail"] or "",
+                )
+            else:
+                sc.attempt(
+                    case_id=self.case_id,
+                    specialist=spec,
+                    failed_tool="subprocess",
+                    failed_args={},
+                    failed_exit=1,
+                    stderr_tail=stderr_tail,
+                )
+
+        self._failed_specialists = []
         return "VALIDATING"
 
     # ------------------------------------------------------------------
@@ -473,6 +533,7 @@ class Investigator:
             "TRIAGE":              self.state_triage,
             "DISPATCH":            self.state_dispatch,
             "SPECIALISTS_RUNNING": self.state_specialists_running,
+            "SELF_CORRECTING":     self.state_self_correcting,
             "VALIDATING":          self.state_validating,
             "NARRATING":           self.state_narrating,
         }
@@ -516,6 +577,7 @@ def main():
     project_root = Path(__file__).parent.parent
 
     investigator = Investigator(case_dir, project_root=project_root)
+    investigator._no_self_correct = args.no_self_correct
     sys.exit(investigator.run())
 
 
