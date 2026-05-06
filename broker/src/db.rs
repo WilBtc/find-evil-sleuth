@@ -43,14 +43,28 @@ pub async fn record_tool_call_finish(
     tool_call_id: Uuid,
     exit_code: i32,
     duration_ms: i32,
+    stdout_hash: Option<&[u8]>,
+    stderr_hash: Option<&[u8]>,
 ) -> Result<()> {
+    // tool_calls is a TimescaleDB hypertable keyed on (started_at, tool_call_id),
+    // so UPDATE-by-tool_call_id alone is allowed (the planner finds the row in
+    // the latest chunk). Use a WHERE-ranged UPDATE to keep the planner happy on
+    // older PG/Timescale versions.
     sqlx::query(
-        r#"UPDATE tool_calls SET finished_at = now(), exit_code = $2, duration_ms = $3
-           WHERE tool_call_id = $1"#,
+        r#"UPDATE tool_calls
+              SET finished_at = now(),
+                  exit_code   = $2,
+                  duration_ms = $3,
+                  stdout_hash = $4,
+                  stderr_hash = $5
+            WHERE tool_call_id = $1
+              AND started_at >= now() - interval '1 day'"#,
     )
     .bind(tool_call_id)
     .bind(exit_code)
     .bind(duration_ms)
+    .bind(stdout_hash)
+    .bind(stderr_hash)
     .execute(pool)
     .await?;
     Ok(())
