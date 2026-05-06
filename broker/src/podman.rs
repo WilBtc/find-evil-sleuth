@@ -127,8 +127,8 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
         "vol3" => {
             let mut v = vec!["vol".into(), "-q".into(),
                 "-f".into(),
-                args.get("memory_image").and_then(|x| x.as_str())
-                    .context("vol3.args.memory_image missing")?.to_string()];
+                args.get("image").and_then(|x| x.as_str())
+                    .context("vol3.args.image missing")?.to_string()];
             v.push(args.get("plugin").and_then(|x| x.as_str())
                 .context("vol3.args.plugin missing")?.to_string());
             if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
@@ -226,6 +226,19 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
                 .and_then(|x| x.as_str())
                 .context("psort.args.storage_file missing")?;
             v.push(storage.to_string());
+            Ok(v)
+        }
+        // zeek --- network traffic analysis
+        "zeek" => {
+            let mut v = vec!["zeek".into(), "-r".into(),
+                args.get("pcap").and_then(|x| x.as_str())
+                    .context("zeek.args.pcap missing")?.to_string()];
+            if let Some(scripts) = args.get("scripts").and_then(|x| x.as_array()) {
+                for s in scripts { if let Some(script) = s.as_str() { v.push(script.into()) } }
+            }
+            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
+                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
+            }
             Ok(v)
         }
         other => anyhow::bail!("no argv builder registered for tool: {other}"),

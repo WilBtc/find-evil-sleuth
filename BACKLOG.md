@@ -52,7 +52,7 @@
   - Done when: (a) `.claude/skills/find-evil/memory-forensics/SKILL.md` and `.claude/agents/find-evil/memory-specialist.md` exist with a vol3 playbook; (b) running the memory-specialist via `claude --print --append-system-prompt …` produces a syntactically valid `sb describe vol3` invocation and at least one *synthetic* finding row written via `es record-finding` against a fixture stdout file (script: `tests/fixtures/vol3-pslist-sample.txt` — claude must create this fixture from a real vol3 pslist man-page-style output if no sample is available); (c) BACKLOG ticked.
   - Touch: skill + agent + fixture file.
 
-- [ ] **2.2.4 Skill + agent `network-forensics` (scaffold; real-pcap run deferred)**
+- [x] **2.2.4 Skill + agent `network-forensics` (scaffold; real-pcap run deferred)**
   - Same caveat: `cases/synthetic-triage-001/traffic.pcap` is a 4-byte placeholder. Phase 4 retests against LoneWolf pcap.
   - Done when: (a) skill + agent files; (b) generate a tiny valid pcap (≥3 packets, like `tests/phase1_5_smoke.sh` does for FAT16) under `tests/fixtures/`; (c) network-specialist run produces ≥10 network findings via real `tshark`/`zeek` against the tiny fixture.
   - Touch: skill + agent + tiny pcap fixture.
