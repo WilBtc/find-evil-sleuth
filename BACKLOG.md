@@ -47,12 +47,15 @@
   - Done when: solo run on phase15 mini-case produces ≥10 disk findings rows.
   - Touch: `.claude/skills/find-evil/disk-forensics/SKILL.md`, `.claude/agents/find-evil/disk-specialist.md`.
 
-- [ ] **2.2.3 Skill + agent `memory-forensics`**
-  - Done when: solo run on a sample memory image produces ≥10 memory findings rows.
-  - Touch: corresponding skill + agent files.
+- [ ] **2.2.3 Skill + agent `memory-forensics` (scaffold; real-evidence run deferred)**
+  - **No real memory image is on dev-server yet** — `cases/synthetic-triage-001/memory.mem` is a 4-byte placeholder. Phase 4 will fetch SANS LoneWolf and retest. For now build the skill + agent files and exercise the broker contract using a stub fixture.
+  - Done when: (a) `.claude/skills/find-evil/memory-forensics/SKILL.md` and `.claude/agents/find-evil/memory-specialist.md` exist with a vol3 playbook; (b) running the memory-specialist via `claude --print --append-system-prompt …` produces a syntactically valid `sb describe vol3` invocation and at least one *synthetic* finding row written via `es record-finding` against a fixture stdout file (script: `tests/fixtures/vol3-pslist-sample.txt` — claude must create this fixture from a real vol3 pslist man-page-style output if no sample is available); (c) BACKLOG ticked.
+  - Touch: skill + agent + fixture file.
 
-- [ ] **2.2.4 Skill + agent `network-forensics`**
-  - Done when: solo run on a sample pcap produces ≥10 network findings rows.
+- [ ] **2.2.4 Skill + agent `network-forensics` (scaffold; real-pcap run deferred)**
+  - Same caveat: `cases/synthetic-triage-001/traffic.pcap` is a 4-byte placeholder. Phase 4 retests against LoneWolf pcap.
+  - Done when: (a) skill + agent files; (b) generate a tiny valid pcap (≥3 packets, like `tests/phase1_5_smoke.sh` does for FAT16) under `tests/fixtures/`; (c) network-specialist run produces ≥10 network findings via real `tshark`/`zeek` against the tiny fixture.
+  - Touch: skill + agent + tiny pcap fixture.
 
 - [ ] **2.2.5 Skill + agent `findings-validator`**
   - Re-executes claim's tool_call with `--validation`, sets `validation_status`.
