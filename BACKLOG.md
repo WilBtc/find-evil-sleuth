@@ -38,7 +38,7 @@
   - Touch: nothing (verification only) unless the embed call needs adjustment.
 
 ## P2.2 Skills + agents
-- [ ] **2.2.1 Skill `dfir-triage`**
+- [x] **2.2.1 Skill `dfir-triage`**
   - Walks `/case`, classifies, writes `case_plan` rows.
   - Done when: `claude --print --agent triage --case <id>` populates `case_plan` for a synthetic 3-evidence case.
   - Touch: `.claude/skills/find-evil/dfir-triage/SKILL.md`, `.claude/agents/find-evil/triage.md`.
