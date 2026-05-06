@@ -12,10 +12,15 @@
   - Done when: `./bin/sb list-tools` prints ≥9 rows AND `./bin/sb describe vol3` returns the spec.
   - Touch: `migrations/002_tool_specs_seed.sql`, push, run on dev-server.
 
-- [ ] **2.1.2 Build remaining per-tool podman images on dev-server**
-  - sleuthkit ✅ (already built); add volatility3, tshark, plaso, zeek+ET, suricata+ET, yara.
-  - Done when: `podman image ls find-evil-sleuth/*` lists all six.
-  - Touch: any missing `broker/tools/<name>.Dockerfile`; build script `scripts/build-tool-images.sh`.
+- [x] **2.1.2 Build remaining per-tool podman images on dev-server**
+  - Built: sleuthkit, volatility3, tshark, yara, suricata (+ET-Open), zeek (+ET-Open).
+  - Plaso deferred to 2.1.2b (pip-from-source against ~30 forensic-library Python bindings fails on slim base — needs `log2timeline/plaso` upstream image).
+  - Done when: `podman image ls find-evil-sleuth/*` lists ≥6.
+
+- [ ] **2.1.2b Plaso podman image (use upstream log2timeline/plaso base)**
+  - Switch `broker/tools/plaso.Dockerfile` to `FROM log2timeline/plaso:latest` (or pinned tag) — do NOT pip install plaso from source. Bake `log2timeline.py` + `psort.py` entrypoints. Keep nobody:nogroup user, /scratch tmpfs.
+  - Done when: `podman image ls find-evil-sleuth/plaso` shows the image AND `podman run --rm find-evil-sleuth/plaso log2timeline.py --version` returns the plaso version line.
+  - Touch: `broker/tools/plaso.Dockerfile`.
 
 - [ ] **2.1.3 AGE graph schema + helpers**
   - Cypher MERGE templates per node/edge type; SQL function `sp_graph_assert(label, props_json)`.
