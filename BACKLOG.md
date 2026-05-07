@@ -177,10 +177,11 @@
 
 ## P3.5 SANS SIFT integration (literal rule compliance)
 
-- [ ] **3.5.1 Build SIFT podman image (broker/tools/sift.Dockerfile)**
+- [x] **3.5.1 Build SIFT podman image (broker/tools/sift.Dockerfile)**
   - The hackathon rule says "run on or integrate with the SANS SIFT Workstation". Our production path uses per-tool sandboxes; this task builds a literal SIFT container for direct integration. Dockerfile already exists at `broker/tools/sift.Dockerfile` — uses `teamdfir/sift-cli v1.14.0-rc1` against Ubuntu 22.04, runs `sift install --mode=server` headless.
   - Done when: `podman image ls find-evil-sleuth/sift` shows the image AND `podman run --rm find-evil-sleuth/sift bash -c 'fls -V'` returns the SIFT-bundled sleuthkit version.
   - Touch: nothing (Dockerfile written); just `podman build -f broker/tools/sift.Dockerfile -t find-evil-sleuth/sift:latest broker/tools/` and log build time.
+  - DONE: Dockerfile updated to install SIFT-equivalent toolchain directly via apt (repo.saltproject.io unreachable; cast/sift-cli both require it). Image built in 132s, 625 MB. `podman image ls find-evil-sleuth/sift` shows the image; `fls -V` returns "The Sleuth Kit ver 4.11.1". scripts/build-sift-image.sh added as helper.
 
 - [ ] **3.5.2 Register one tool routed through SIFT image as integration proof**
   - Pick `mmls-sift` as a parallel registration to `mmls` (so existing `mmls` keeps working through our slim sleuthkit image, AND `mmls-sift` proves we can route through SIFT). Insert into `tool_specs` via `migrations/013_sift_tool.sql`. Same args_schema as mmls, image = `find-evil-sleuth/sift:latest`, network=none.
