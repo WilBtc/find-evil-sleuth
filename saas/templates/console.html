@@ -1,0 +1,220 @@
+{% extends "_base.html" %}
+
+{% block title %}SQL Console — find-evil-sleuth inspector{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/" class="text-gray-500 hover:text-green-400 transition-colors text-sm">&#x2190; Cases</a>
+    <span class="text-gray-700">/</span>
+    <h1 class="text-xl font-bold text-green-400 font-mono">SQL Console</h1>
+    <span class="ml-2 text-xs px-2 py-0.5 rounded border border-yellow-700 text-yellow-400 font-mono">read-only · sleuth_ro</span>
+  </div>
+
+  <div class="mb-4 text-xs text-gray-500">
+    Queries execute as the <span class="text-yellow-400 font-mono">sleuth_ro</span> role.
+    SELECT is allowed; INSERT / UPDATE / DELETE / DDL will be rejected by the database.
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
+
+    <div class="lg:col-span-3 flex flex-col gap-2">
+      <label class="text-xs text-gray-500 font-mono uppercase tracking-wider">Query</label>
+      <div id="cm-wrapper" class="border border-gray-700 rounded bg-gray-900 overflow-hidden" style="min-height:160px">
+        <textarea id="sql-input" class="w-full bg-gray-900 text-green-300 font-mono text-sm p-3 resize-none outline-none border-0"
+          rows="7"
+          placeholder="SELECT * FROM findings LIMIT 10;"
+          spellcheck="false"
+        >SELECT * FROM findings LIMIT 10;</textarea>
+      </div>
+      <div class="flex gap-2">
+        <button id="run-btn" onclick="runQuery()"
+          class="px-4 py-1.5 rounded bg-green-800 text-green-100 hover:bg-green-700 transition-colors text-sm font-mono font-bold">
+          &#x25B6; Run (Ctrl+Enter)
+        </button>
+        <button onclick="clearEditor()"
+          class="px-3 py-1.5 rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 transition-colors text-sm font-mono">
+          Clear
+        </button>
+        <span id="timing" class="ml-auto text-xs text-gray-600 self-center font-mono"></span>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label class="text-xs text-gray-500 font-mono uppercase tracking-wider">Canned Queries</label>
+      <div class="flex flex-col gap-1">
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="SELECT * FROM findings LIMIT 10;">
+          Top 10 findings
+        </button>
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="SELECT * FROM findings WHERE validation_status = 'confirmed' ORDER BY created_at DESC LIMIT 20;">
+          Confirmed findings
+        </button>
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="SELECT mitre_technique, count(*) AS n FROM findings WHERE mitre_technique IS NOT NULL GROUP BY mitre_technique ORDER BY n DESC;">
+          Findings by MITRE
+        </button>
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="SELECT specialist, count(*) AS findings, count(*) FILTER (WHERE validation_status='confirmed') AS confirmed FROM findings GROUP BY specialist ORDER BY findings DESC;">
+          By specialist
+        </button>
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="SELECT case_id, name, status, created_at FROM cases ORDER BY created_at DESC LIMIT 20;">
+          Recent cases
+        </button>
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="SELECT tool, count(*) AS calls, avg(duration_ms)::int AS avg_ms, sum(CASE WHEN exit_code=0 THEN 1 ELSE 0 END) AS ok FROM tool_calls GROUP BY tool ORDER BY calls DESC;">
+          Tool call stats
+        </button>
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="SELECT f.finding_id, f.claim, vr.result, vr.started_at FROM validation_runs vr JOIN findings f ON f.finding_id = vr.finding_id WHERE vr.started_at > now() - interval '1 hour' ORDER BY vr.started_at DESC LIMIT 20;">
+          Self-corrections last 1h
+        </button>
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="SELECT root_id, encode(root_hash,'hex') AS root_hash, leaf_count, rolled_up_at FROM merkle_roots ORDER BY rolled_up_at DESC LIMIT 10;">
+          Merkle audit roots
+        </button>
+        <button class="canned text-left text-xs px-2 py-1.5 rounded border border-gray-800 text-gray-400 hover:border-green-700 hover:text-green-300 transition-colors font-mono"
+          data-sql="INSERT INTO findings (finding_id, case_id, specialist, claim, confidence, validation_status, tool_call_id) VALUES ('x','y','z','test','high','confirmed', gen_random_uuid());">
+          Test: INSERT (expect denied)
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="error-box" class="hidden mb-4 bg-red-950 border border-red-800 rounded p-3 text-red-300 text-sm font-mono whitespace-pre-wrap"></div>
+
+  <div id="results-section" class="hidden">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="text-xs text-gray-500 font-mono uppercase tracking-wider">Results</span>
+      <span id="row-count" class="text-xs text-green-400 font-mono"></span>
+    </div>
+    <div class="overflow-x-auto rounded border border-gray-800">
+      <table id="results-table" class="w-full text-xs font-mono">
+        <thead id="results-head" class="bg-gray-800 text-gray-400 uppercase tracking-wider"></thead>
+        <tbody id="results-body" class="divide-y divide-gray-800"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="empty-box" class="hidden mt-4 bg-gray-900 border border-gray-800 rounded p-4 text-gray-500 text-sm font-mono text-center">
+    Query returned 0 rows.
+  </div>
+
+</div>
+
+<script>
+const sqlInput = document.getElementById('sql-input');
+
+document.querySelectorAll('button.canned').forEach(btn => {
+  btn.addEventListener('click', () => {
+    sqlInput.value = btn.dataset.sql;
+    sqlInput.focus();
+  });
+});
+
+sqlInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.ctrlKey) {
+    e.preventDefault();
+    runQuery();
+  }
+});
+
+function clearEditor() {
+  sqlInput.value = '';
+  sqlInput.focus();
+  hideAll();
+}
+
+function hideAll() {
+  document.getElementById('error-box').classList.add('hidden');
+  document.getElementById('results-section').classList.add('hidden');
+  document.getElementById('empty-box').classList.add('hidden');
+  document.getElementById('timing').textContent = '';
+  document.getElementById('row-count').textContent = '';
+}
+
+async function runQuery() {
+  const sql = sqlInput.value.trim();
+  if (!sql) return;
+
+  hideAll();
+
+  const btn = document.getElementById('run-btn');
+  btn.textContent = '⏳ Running…';
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch('/console/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql }),
+    });
+
+    const data = await resp.json();
+
+    document.getElementById('timing').textContent = `${data.duration_ms}ms`;
+
+    if (data.error) {
+      const eb = document.getElementById('error-box');
+      eb.textContent = data.error;
+      eb.classList.remove('hidden');
+      return;
+    }
+
+    if (data.row_count === 0) {
+      document.getElementById('empty-box').classList.remove('hidden');
+      return;
+    }
+
+    document.getElementById('row-count').textContent = `${data.row_count} row${data.row_count === 1 ? '' : 's'}`;
+
+    const thead = document.getElementById('results-head');
+    const tbody = document.getElementById('results-body');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const tr = document.createElement('tr');
+    data.columns.forEach(col => {
+      const th = document.createElement('th');
+      th.className = 'px-3 py-2 text-left whitespace-nowrap border-b border-gray-700';
+      th.textContent = col;
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+
+    data.rows.forEach((row, ri) => {
+      const tr = document.createElement('tr');
+      tr.className = ri % 2 === 0 ? 'bg-gray-950 hover:bg-gray-900' : 'bg-gray-900 hover:bg-gray-800';
+      row.forEach(cell => {
+        const td = document.createElement('td');
+        td.className = 'px-3 py-1.5 whitespace-nowrap max-w-xs truncate text-gray-300';
+        if (cell === null) {
+          td.innerHTML = '<span class="text-gray-600 italic">NULL</span>';
+        } else if (typeof cell === 'object') {
+          td.textContent = JSON.stringify(cell);
+        } else {
+          td.textContent = String(cell);
+        }
+        td.title = cell === null ? 'NULL' : String(cell);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('results-section').classList.remove('hidden');
+
+  } catch (err) {
+    const eb = document.getElementById('error-box');
+    eb.textContent = 'Request failed: ' + err;
+    eb.classList.remove('hidden');
+  } finally {
+    btn.textContent = '▶ Run (Ctrl+Enter)';
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

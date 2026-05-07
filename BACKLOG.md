@@ -302,7 +302,7 @@
   - Done when: audit page renders ≥1 merkle root for LoneWolf case; verify button shows green check on a clean DB; manually corrupting a tool_call stdout_hash flips the verify to red.
   - Touch: `saas/src/routes/audit.rs`, `saas/templates/audit.html`, also a `verify` SQL function in `migrations/014_merkle_verify.sql` (computes root from leaves — pure SQL).
 
-- [ ] **5.2.6 Page: Read-only psql console (`/console`)**
+- [x] **5.2.6 Page: Read-only psql console (`/console`)**
   - Browser-side SQL editor (CodeMirror via CDN, no build). Backend executes against `sleuth_ro` role only. SSE/HTMX swaps result rows into a table. Pre-canned query buttons: "Top 10 confirmed findings", "All self-corrections last hour", "Findings by MITRE", etc. **Lets judges run their own queries.** Heavy criterion 5 + 6 win.
   - Done when: judges can run `SELECT * FROM findings LIMIT 10;` and see results; `INSERT INTO findings ...` returns permission denied.
   - Touch: `saas/src/routes/console.rs`, `saas/templates/console.html`.
