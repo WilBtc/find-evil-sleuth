@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
                 PathBuf::from(root).join(&case)
             });
             let scratch_root = env::var("SLEUTH_SCRATCH_ROOT")
-                .unwrap_or_else(|_| "/var/sleuth/scratch".into());
+                .unwrap_or_else(|_| "./var/sleuth/scratch".into());
             let scratch_dir = PathBuf::from(scratch_root).join(&case);
             let receipt = exec(&pool, &case, &tool, parsed, validation, case_dir, scratch_dir).await?;
             println!("{}", serde_json::to_string_pretty(&receipt)?);
