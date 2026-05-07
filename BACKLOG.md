@@ -134,7 +134,7 @@
   - Done when: a deliberately-broken tool call (mis-stated arg) triggers exactly 3 retry attempts visible in `self_corrections` table when none succeeds; one retry when first succeeds.
   - Touch: `adws/self_correct.py`, `adws/investigate.py`.
 
-- [ ] **3.2.4 Stop hook gates on agent identity (not transcript grep)**
+- [x] **3.2.4 Stop hook gates on agent identity (not transcript grep)**
   - `stop-cite-check.sh` greps the entire transcript JSON for "report.md" — fires for any conversation that mentions it. Read `.subagent_type` from the input JSON; only run check when subagent_type == 'narrator'. Use exit 2 (blocking) per Stop hook contract, not exit 1.
   - Done when: hook fires only for narrator stops; emits exit 2 with stderr reason if cite-coverage fails; emits exit 0 otherwise.
   - Touch: `.claude/hooks/stop-cite-check.sh`.

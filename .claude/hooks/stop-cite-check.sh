@@ -3,18 +3,23 @@
 #
 # Fires when the ir-narrator agent session ends. Scans for any report.md
 # files written during the session under cases/*/report.md and runs the
-# citation checker on each. Exits 0 if all pass; exits 1 to signal the agent
-# must re-open and fix any uncited lines.
+# citation checker on each. Exits 0 if all pass; exits 2 (blocking) to
+# signal the agent must re-open and fix any uncited lines.
 #
 # The Stop hook receives the session transcript as JSON on stdin.
+# Per the Stop hook contract, exit 2 blocks the agent from stopping.
 
 set -u
 
 input_json="$(cat)"
 
-# Only run for the ir-narrator agent (or any agent that writes a report.md).
-# Detect by looking for report.md writes in the transcript.
-if ! printf '%s' "$input_json" | grep -q 'report\.md'; then
+# Gate on agent identity: only run for the ir-narrator subagent.
+# Read .subagent_type from the input JSON (not a transcript grep).
+subagent_type="$(printf '%s' "$input_json" | python3 -c \
+    "import sys,json; d=json.load(sys.stdin); print(d.get('subagent_type',''))" \
+    2>/dev/null || true)"
+
+if [[ "$subagent_type" != "ir-narrator" ]]; then
     exit 0
 fi
 
@@ -30,11 +35,16 @@ if [[ ${#report_files[@]} -eq 0 ]]; then
     exit 0
 fi
 
-all_pass=0
+failed_reports=()
 for report in "${report_files[@]}"; do
     if ! bash "${project_dir}/scripts/check-report-citations.sh" "$report"; then
-        all_pass=1
+        failed_reports+=("$report")
     fi
 done
 
-exit $all_pass
+if [[ ${#failed_reports[@]} -gt 0 ]]; then
+    printf 'Citation check failed for: %s\n' "${failed_reports[@]}" >&2
+    exit 2
+fi
+
+exit 0
