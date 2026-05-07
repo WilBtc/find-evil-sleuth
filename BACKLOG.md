@@ -144,7 +144,7 @@
   - Done when: narrator subagent runs successfully on the phase15 case AND `INSERT INTO findings VALUES ...` from the narrator's connection raises permission denied.
   - Touch: `migrations/010_sleuth_ro_role.sql`, `.claude/skills/find-evil/ir-narrator/SKILL.md`, `.env.example`.
 
-- [ ] **3.2.6 Findings F-NNN allocation race fix (use a SEQUENCE)**
+- [x] **3.2.6 Findings F-NNN allocation race fix (use a SEQUENCE)**
   - Concurrent specialists race on `MAX(...)+1` and lose to PK conflict. Replace with `CREATE SEQUENCE finding_seq`; format as `'F-' || lpad(nextval('finding_seq')::text, 3, '0')` in `findings.rs::record`.
   - Done when: 10 parallel `es record-finding` calls succeed without retry/conflict.
   - Touch: `migrations/011_finding_seq.sql`, `evidence-store/src/findings.rs`.
