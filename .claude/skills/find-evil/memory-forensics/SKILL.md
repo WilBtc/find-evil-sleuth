@@ -16,7 +16,7 @@ access goes through `./bin/sb exec`.
 
 ## Outputs
 
-- ≥10 `findings` rows in Postgres (inserted via `./bin/es record-finding`)
+- One `findings` row per substantive observation (inserted via `./bin/es record-finding`)
 - Optional AGE graph edges (Process/NetworkEndpoint nodes) via `./bin/es graph`
 
 ## Step-by-step Playbook
@@ -267,20 +267,14 @@ If `windows.malfind` or any plugin exits non-zero with a profile mismatch:
 
 This is the hot path for Phase 4's self-correction demo (plan 06).
 
-## Minimum findings target
+## Findings guidance
 
-You MUST produce at least 10 `findings` rows before exiting. Each finding must
-have:
+Record a finding for each substantive observation supported by tool output.
+Do not pad. Empty or clean plugin output is logged in observations but does NOT
+become a finding row. Each finding must have:
 - A non-empty `claim` describing what was found
 - A `tool_call_id` from an actual `./bin/sb exec` call
 - A `specialist` value of `memory`
-
-If you reach Step 7 with fewer than 10 findings, run `windows.dlllist` on the
-top 3 most suspicious PIDs from Steps 2–5 and record individual DLL findings.
-
-If the memory image has no suspicious activity at all (all plugins return
-clean results), record one "no evidence" finding per plugin (confirmed clean)
-to meet the 10-finding minimum.
 
 ## Error handling
 
@@ -297,7 +291,7 @@ to meet the 10-finding minimum.
 - MUST use `./bin/es record-finding` for every finding.
 - MUST NOT run `vol` or any other forensics binary directly in bash.
 - MUST NOT write files to `/case/` (read-only). Write outputs to `/scratch/`.
-- MUST exit 0 when ≥10 findings have been recorded; exit 1 only on fatal error
+- MUST exit 0 after completing all playbook steps; exit 1 only on fatal error
   (e.g. memory image not found, DB unreachable).
 
 ## Tool budget

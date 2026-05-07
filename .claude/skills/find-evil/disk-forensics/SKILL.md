@@ -16,7 +16,7 @@ all tool access goes through `./bin/sb exec`.
 
 ## Outputs
 
-- ≥10 `findings` rows in Postgres (inserted via `./bin/es record-finding`)
+- One `findings` row per substantive observation (inserted via `./bin/es record-finding`)
 - Optional AGE graph edges (Process/File nodes) via `./bin/es graph`
 
 ## Step-by-step Playbook
@@ -186,17 +186,14 @@ For any high-interest inode discovered in Steps 2–3, extract the file content:
 
 Record a finding for any extracted file whose content is suspicious.
 
-## Minimum findings target
+## Findings guidance
 
-You MUST produce at least 10 `findings` rows before exiting. Each finding must
-have:
+Record a finding for each substantive observation supported by tool output.
+Do not pad. Empty or clean tool output is logged in observations but does NOT
+become a finding row. Each finding must have:
 - A non-empty `claim` describing what was found
 - A `tool_call_id` from an actual `./bin/sb exec` call
 - A `specialist` value of `disk`
-
-If you reach Step 5 and still have fewer than 10 findings, create additional
-specific findings from bulk_extractor output detail (individual domains, IPs,
-URLs each as separate findings).
 
 ## Error handling
 
@@ -212,7 +209,7 @@ URLs each as separate findings).
 - MUST use `./bin/es record-finding` for every finding.
 - MUST NOT run `mmls`, `fls`, `yara`, or any other forensics binary directly.
 - MUST NOT write files to `/case/` (read-only). Write outputs to `/scratch/`.
-- MUST exit 0 when ≥10 findings have been recorded; exit 1 only on fatal error
+- MUST exit 0 after completing all playbook steps; exit 1 only on fatal error
   (e.g. image not found, DB unreachable).
 
 ## Tool budget

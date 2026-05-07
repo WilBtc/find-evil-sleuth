@@ -104,7 +104,7 @@
   - Done when: `grep -rE '/case/<?CASE_ID' .claude/skills/find-evil .claude/agents/find-evil` returns nothing AND a smoke run of the disk specialist on the phase15 mini-case succeeds.
   - Touch: 6 skill files + 6 agent files.
 
-- [ ] **3.1.5 Drop the ≥10 findings quota; replace with "one finding per substantive observation"**
+- [x] **3.1.5 Drop the ≥10 findings quota; replace with "one finding per substantive observation"**
   - Skills currently say "produce ≥10 findings; if count<10, add more" which incentivizes fabrication. Network specialist explicitly records "no DNS traffic — confirmed clean" as findings. That undermines criterion 5 (audit trail).
   - Rewrite the "Done when" / step-N guidance in each specialist skill to: "Record a finding for each substantive observation supported by tool output. Do not pad. Empty/clean tool output is logged in obs but does NOT become a finding row." Same for the scaffold tests' "padding" rows — delete them.
   - Done when: scaffold tests still produce ≥3 findings per specialist (real ones), and grep for `confirmed clean|no evidence|no .* traffic.*confirmed` in skill bodies returns nothing.

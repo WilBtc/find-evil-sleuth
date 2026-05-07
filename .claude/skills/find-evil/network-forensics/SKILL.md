@@ -16,7 +16,7 @@ read evidence directly — all tool access goes through `./bin/sb exec`.
 
 ## Outputs
 
-- ≥10 `findings` rows in Postgres (inserted via `./bin/es record-finding`)
+- One `findings` row per substantive observation (inserted via `./bin/es record-finding`)
 - Optional AGE graph edges (NetworkEndpoint/Connection nodes) via `./bin/es graph`
 
 ## Step-by-step Playbook
@@ -281,19 +281,14 @@ If `tshark` exits non-zero (corrupted pcap header, truncated capture):
 2. Re-run the failed step against the recovered file.
 3. Record a finding noting the repair action.
 
-## Minimum findings target
+## Findings guidance
 
-You MUST produce at least 10 `findings` rows before exiting. Each finding must have:
+Record a finding for each substantive observation supported by tool output.
+Do not pad. Empty or clean tool output is logged in observations but does NOT
+become a finding row. Each finding must have:
 - A non-empty `claim` describing what was found
 - A `tool_call_id` from an actual `./bin/sb exec` call
 - A `specialist` value of `network`
-
-If you reach Step 7 with fewer than 10 findings, run additional tshark passes:
-- UDP conversation stats: `extra_args:["-q","-z","conv,udp"]`
-- Expert info: `extra_args:["-q","-z","expert"]`
-
-If the pcap contains no suspicious activity (all traffic looks benign), record one
-"no evidence" finding per step (confirmed clean) to meet the 10-finding minimum.
 
 ## Error handling
 
@@ -308,7 +303,7 @@ If the pcap contains no suspicious activity (all traffic looks benign), record o
 - MUST use `./bin/sb exec` for every tshark/zeek/editcap call.
 - MUST use `./bin/es record-finding` for every finding.
 - MUST NOT run `tshark`, `zeek`, or any other binary directly in bash.
-- MUST exit 0 when ≥10 findings have been recorded; exit 1 only on fatal error.
+- MUST exit 0 after completing all playbook steps; exit 1 only on fatal error.
 
 ## Tool budget
 
