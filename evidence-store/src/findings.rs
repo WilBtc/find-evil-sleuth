@@ -59,7 +59,8 @@ pub async fn record(
     Ok(finding_id)
 }
 
-/// Update `validation_status` and `last_validated_at` on an existing finding.
+/// Update `validation_status` and `last_validated_at` on an existing finding,
+/// and append an immutable row to `validation_history`.
 ///
 /// `status` must be one of: confirmed | refuted | inconclusive | drift.
 /// `validation_tool_call_id` is the broker call UUID that was used to re-run the
@@ -76,6 +77,8 @@ pub async fn set_validation(
         other => bail!("invalid validation status {:?}; must be confirmed|refuted|inconclusive|drift", other),
     }
 
+    let mut tx = pool.begin().await?;
+
     let rows = sqlx::query(
         r#"UPDATE findings
               SET validation_status      = $2,
@@ -84,7 +87,7 @@ pub async fn set_validation(
     )
     .bind(finding_id)
     .bind(status)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?
     .rows_affected();
 
@@ -92,14 +95,26 @@ pub async fn set_validation(
         bail!("finding {} not found", finding_id);
     }
 
+    sqlx::query(
+        r#"INSERT INTO validation_history (finding_id, status, validation_tool_call_id)
+           VALUES ($1, $2, $3)"#,
+    )
+    .bind(finding_id)
+    .bind(status)
+    .bind(validation_tool_call_id)
+    .execute(&mut *tx)
+    .await?;
+
     if let Some(tc_id) = validation_tool_call_id {
         sqlx::query(
             r#"UPDATE tool_calls SET is_validation = true WHERE tool_call_id = $1"#,
         )
         .bind(tc_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
     }
+
+    tx.commit().await?;
 
     Ok(())
 }

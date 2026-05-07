@@ -101,14 +101,31 @@ mkdir -p cases/<CASE_ID>
 
 ### Step 1 — Fetch confirmed findings
 
-Write the query to a temp file and run it:
+Write the query to a temp file and run it.
 
-```
-SELECT finding_id, specialist, claim, validation_status, mitre_technique, confidence
-FROM findings
-WHERE case_id = '<CASE_ID>'
-  AND validation_status IN ('confirmed', 'drift')
-ORDER BY specialist, finding_id;
+The query resolves the authoritative status from `validation_history` when
+a history row is present (latest row wins); otherwise it falls back to
+`findings.validation_status`.  This avoids the narrator seeing stale status
+from a destructive reset.
+
+```sql
+SELECT f.finding_id,
+       f.specialist,
+       f.claim,
+       COALESCE(vh_latest.status, f.validation_status) AS validation_status,
+       f.mitre_technique,
+       f.confidence
+FROM   findings f
+LEFT JOIN LATERAL (
+    SELECT status
+    FROM   validation_history vh
+    WHERE  vh.finding_id = f.finding_id
+    ORDER  BY vh.validated_at DESC
+    LIMIT  1
+) vh_latest ON true
+WHERE  f.case_id = '<CASE_ID>'
+  AND  COALESCE(vh_latest.status, f.validation_status) IN ('confirmed', 'drift')
+ORDER BY f.specialist, f.finding_id;
 ```
 
 ```bash

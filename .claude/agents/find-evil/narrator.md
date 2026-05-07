@@ -38,15 +38,28 @@ Read and follow: `.claude/skills/find-evil/ir-narrator/SKILL.md`
    mkdir -p cases/<CASE_ID>
    ```
 
-3. **Fetch confirmed findings** — write a SQL query file and run it:
+3. **Fetch confirmed findings** — write a SQL query file and run it.
+   The query uses `validation_history` (latest row per finding) as the
+   authoritative status source to avoid stale values from any prior reset:
    ```bash
    cat > /tmp/narrator_<CASE_ID>.sql << 'SQLEOF'
-   SELECT finding_id, specialist, claim, validation_status,
-          mitre_technique, confidence
-   FROM findings
-   WHERE case_id = '<CASE_ID>'
-     AND validation_status IN ('confirmed', 'drift')
-   ORDER BY specialist, finding_id;
+   SELECT f.finding_id,
+          f.specialist,
+          f.claim,
+          COALESCE(vh_latest.status, f.validation_status) AS validation_status,
+          f.mitre_technique,
+          f.confidence
+   FROM   findings f
+   LEFT JOIN LATERAL (
+       SELECT status
+       FROM   validation_history vh
+       WHERE  vh.finding_id = f.finding_id
+       ORDER  BY vh.validated_at DESC
+       LIMIT  1
+   ) vh_latest ON true
+   WHERE  f.case_id = '<CASE_ID>'
+     AND  COALESCE(vh_latest.status, f.validation_status) IN ('confirmed', 'drift')
+   ORDER BY f.specialist, f.finding_id;
    SQLEOF
    psql postgresql://sleuth:changeme-dev-only@127.0.0.1:5532/sleuth \
      -f /tmp/narrator_<CASE_ID>.sql 2>&1

@@ -110,7 +110,7 @@
   - Done when: scaffold tests still produce ≥3 findings per specialist (real ones), and grep for `confirmed clean|no evidence|no .* traffic.*confirmed` in skill bodies returns nothing.
   - Touch: 6 skill bodies + `tests/network_forensics_scaffold.sh` (lines 138/148/158/168) + `tests/memory_forensics_scaffold.sh` similar.
 
-- [ ] **3.1.6 Replace destructive pg_cron re-validation with append-only `validation_history`**
+- [x] **3.1.6 Replace destructive pg_cron re-validation with append-only `validation_history`**
   - Current `005_pgcron_revalidation.sql` UPDATE-resets every confirmed finding back to `pending` every hour. That destroys the audit trail and makes the narrator's "WHERE validation_status='confirmed'" query empty mid-report.
   - Drop that migration. Add `migrations/007_validation_history.sql` with: `validation_history(history_id bigserial PK, finding_id text REFERENCES findings, status text, validated_at timestamptz default now(), validation_tool_call_id uuid)`. Update `evidence-store/src/findings.rs::set_validation` to INSERT into history AND update the latest status on `findings`. Update narrator to query latest history row when present.
   - pg_cron job rewritten to append a new row only when the latest history is >24h old AND status was previously `confirmed` (re-validation, not reset).
