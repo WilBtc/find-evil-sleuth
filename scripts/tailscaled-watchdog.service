@@ -1,0 +1,10 @@
+[Unit]
+Description=Probe a Tailscale peer; restart tailscaled if unreachable for N ticks
+After=tailscaled.service
+Requires=tailscaled.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/tailscaled-watchdog.sh
+# Don't fail the unit on routine "peer briefly unreachable" — script handles it.
+SuccessExitStatus=0 1
