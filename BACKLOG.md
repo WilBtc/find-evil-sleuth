@@ -210,7 +210,7 @@
   - Use the excalidraw-diagram skill from `~/.claude/skills/`. Show: PreToolUse hook → broker → podman+seccomp → tools → evidence-store → Postgres (with extension callouts: pgvector, AGE, Timescale, pgaudit) → obs → ADW outloop. Annotate the architectural-guardrail boundary.
   - Done when: `docs/architecture.svg` exists, opens in any SVG viewer, includes a legend identifying the architectural-guardrail boundary, and is referenced from README.
 
-- [ ] **4.1.2 README rewrite for submission**
+- [x] **4.1.2 README rewrite for submission**
   - Sections in this order: tagline, what-it-is (3 paragraphs), one-command quickstart (clone → docker compose up → fetch evidence → investigate.sh → cite F-001), architecture diagram embed, judging-criteria→design table, plans/ pointer, license, citations.
   - Done when: a fresh-VM `README.md` walkthrough completes from `git clone` to a working `cite F-NNN` invocation in <60 min.
 
