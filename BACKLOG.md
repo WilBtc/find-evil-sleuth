@@ -232,16 +232,16 @@
   - Beat-by-beat narration aligned to plans/06-self-correction-demos.md (problem → architecture → live run → vol3 self-correction → pcap self-correction → `es cite` → wrap). ≤5 min total.
   - Done when: script written, all timestamps add up to ≤5 min, every claim in the narration is verifiable from the audit DB.
 
-- [ ] **4.2.2 Record demo video (terminal screencast + audio)**
+- [~] **4.2.2 Record demo video (terminal screencast + audio)** *(deferred — needs user with mic)*
   - Use `kooha-recorder` skill. 1080p60, mp4, mic on, desktop audio off. Three takes minimum; keep the best as `submission/demo.mp4`. Backup takes preserved.
   - Done when: ≤5 min mp4 in `submission/demo.mp4` matching DEMO_SCRIPT.md, both self-corrections visible.
 
-- [ ] **4.2.3 Upload to YouTube unlisted, link in submission**
+- [~] **4.2.3 Upload to YouTube unlisted, link in submission** *(deferred — needs user YouTube login)*
   - Done when: YouTube unlisted URL recorded in `submission/devpost-form.md`.
 
 ## P4.3 Submission packaging
 
-- [ ] **4.3.1 GitHub mirror at `wilaroca2021/find-evil-sleuth`**
+- [~] **4.3.1 GitHub mirror at `wilaroca2021/find-evil-sleuth`** *(deferred — needs user gh auth)*
   - Push from Gitea to GitHub. Verify Apache-2.0 detected in About sidebar. Public.
   - Done when: GitHub repo exists, public, Apache-2.0 detected, has a mirror-status note in README.
 
