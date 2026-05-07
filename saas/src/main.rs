@@ -33,6 +33,8 @@ async fn main() -> Result<()> {
         .route("/cases/partial", get(routes::cases_list_partial))
         .route("/case/{id}", get(routes::case_detail))
         .route("/case/{id}/events", get(routes::case_events))
+        .route("/case/{id}/findings", get(routes::findings_list))
+        .route("/finding/{fid}", get(routes::finding_detail))
         .nest_service("/static", ServeDir::new(static_dir))
         .with_state(state);
 

@@ -9,6 +9,10 @@
     <a href="/" class="text-gray-500 hover:text-green-400 transition-colors text-sm">&#x2190; Cases</a>
     <span class="text-gray-700">/</span>
     <h1 class="text-xl font-bold text-green-400 font-mono">{{ case.case_id }}</h1>
+    <a href="/case/{{ case.case_id }}/findings"
+       class="ml-4 text-xs px-2 py-1 rounded border border-gray-700 text-gray-400 hover:border-green-600 hover:text-green-400 transition-colors">
+      Findings &#x2192;
+    </a>
     {% if case.status == "running" %}
     <span class="inline-block px-2 py-0.5 rounded text-xs bg-yellow-900 text-yellow-300">running</span>
     {% elif case.status == "done" %}

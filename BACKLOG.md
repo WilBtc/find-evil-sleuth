@@ -287,7 +287,7 @@
   - Done when: opening the LoneWolf case shows ≥80 tool_call rows, the 18 self_corrections are visibly inlined at the right timestamps, and a fresh investigate.sh run streams new events into the page in real time.
   - Touch: `saas/src/routes/case.rs` (incl. SSE endpoint), `saas/templates/case_detail.html`, `saas/templates/_partials/tool_call_row.html`.
 
-- [ ] **5.2.3 Page: Findings table + drill-down (`/case/:id/findings`, `/finding/:fid`)**
+- [x] **5.2.3 Page: Findings table + drill-down (`/case/:id/findings`, `/finding/:fid`)**
   - Sortable/filterable findings table: F-NNN, claim, specialist, MITRE, validation_status (color chip), confidence. Click F-NNN → modal/drawer showing the FULL `es cite` JSON with syntax highlighting, the tool_call args, the BLAKE3 hash, validation history. **This is criterion 5 made visual.**
   - Done when: filter on `validation_status='confirmed' AND specialist='disk'` renders 34 rows; clicking F-007 shows the full audit JSON inline including the validating tool_call.
   - Touch: `saas/src/routes/findings.rs`, `saas/templates/findings_*.html`.
