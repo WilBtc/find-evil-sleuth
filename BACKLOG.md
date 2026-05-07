@@ -292,7 +292,7 @@
   - Done when: filter on `validation_status='confirmed' AND specialist='disk'` renders 34 rows; clicking F-007 shows the full audit JSON inline including the validating tool_call.
   - Touch: `saas/src/routes/findings.rs`, `saas/templates/findings_*.html`.
 
-- [ ] **5.2.4 Page: Attack graph (`/case/:id/graph`) — AGE rendered visually**
+- [x] **5.2.4 Page: Attack graph (`/case/:id/graph`) — AGE rendered visually**
   - Server queries AGE for nodes/edges of the case, returns adjacency JSON. Frontend uses **vis-network** (single CDN'd JS file, no build) for force-directed render. Node colors by label (Process / File / NetworkEndpoint / RegistryKey / User / IOC); edge labels (SPAWNED / CONNECTED_TO / etc.). Click a node → side panel showing related findings.
   - Done when: AGE graph for the LoneWolf case renders with ≥30 nodes, edges visible, clicking a Process node shows the findings that reference it.
   - Touch: `saas/src/routes/graph.rs`, `saas/templates/graph.html`, `saas/static/vis-network.min.js` (vendor in).

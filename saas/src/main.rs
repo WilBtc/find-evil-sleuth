@@ -29,12 +29,16 @@ async fn main() -> Result<()> {
     let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
 
     let app = Router::new()
+        .route("/ping", get(|| async { "pong" }))
         .route("/", get(routes::cases_list))
         .route("/cases/partial", get(routes::cases_list_partial))
-        .route("/case/{id}", get(routes::case_detail))
-        .route("/case/{id}/events", get(routes::case_events))
-        .route("/case/{id}/findings", get(routes::findings_list))
-        .route("/finding/{fid}", get(routes::finding_detail))
+        .route("/case/:id", get(routes::case_detail))
+        .route("/case/:id/events", get(routes::case_events))
+        .route("/case/:id/findings", get(routes::findings_list))
+        .route("/finding/:fid", get(routes::finding_detail))
+        .route("/case/:id/graph", get(routes::graph_page))
+        .route("/case/:id/graph/data", get(routes::graph_data))
+        .route("/case/:id/graph/node/:nid/findings", get(routes::node_findings))
         .nest_service("/static", ServeDir::new(static_dir))
         .with_state(state);
 
