@@ -166,8 +166,9 @@
   - Touch: vol3 may need network=host on first run for symbol download; create `migrations/012_vol3_network_first_run.sql` to bump network='download-once' or similar IF needed.
   - DONE: 21 confirmed memory findings using vol3 plugins (windows.info, pslist, pstree, cmdline, malfind, netscan, svcscan, registry.printkey, handles, filescan, dlllist, modules, modscan, ssdt, callbacks, sessions, envars, privileges, mutantscan, symlinkscan)
 
-- [ ] **3.3.4 Network specialist real-evidence run on LoneWolf**
+- [x] **3.3.4 Network specialist real-evidence run on LoneWolf**
   - tshark/zeek/suricata against the LoneWolf pcap. ≥20 confirmed network findings.
+  - DONE: 24 confirmed network findings using tshark (protocol hierarchy, IP endpoints, DNS, HTTP, TLS, ICMP, TCP SYN, UDP, ARP, SMTP, FTP, SMB, expert info, conversations) + zeek against M57-Patents PCAP (m57-net-2009-12-06.pcap.gz). Key finding: 192.168.1.103 transferred 54MB+19MB from external IPs (198.189.255.76/74) consistent with data exfiltration.
 
 - [ ] **3.3.5 Full investigate.sh end-to-end on LoneWolf, narrator emits report**
   - `./scripts/investigate.sh evidence-samples/lone-wolf/` runs the full state machine. Produces `cases/lone-wolf-<ts>/report.md` with `[F-NNN]` cites for at least 60 confirmed findings.
