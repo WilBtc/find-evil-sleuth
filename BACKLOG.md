@@ -270,7 +270,7 @@
   - Done when: `cargo build -p saas --release` produces `bin/sleuth-saas`, `./bin/sleuth-saas` listens on `0.0.0.0:8932` (port-registry reserved), `curl http://127.0.0.1:8932/` returns the layout HTML.
   - Touch: `saas/Cargo.toml`, `saas/src/{main.rs,routes/mod.rs}`, `saas/templates/_base.html`, `saas/styles.in.css`, root `Cargo.toml` workspace member add.
 
-- [ ] **5.1.2 `scripts/saas.sh` one-command launcher**
+- [x] **5.1.2 `scripts/saas.sh` one-command launcher**
   - `./scripts/saas.sh up` ensures docker compose postgres is up, builds `bin/sleuth-saas` if missing, launches it, opens the browser to http://127.0.0.1:8932/. `down` stops it.
   - Done when: from clean state, `up` brings everything online in <60s and the homepage renders.
   - Touch: `scripts/saas.sh`.
