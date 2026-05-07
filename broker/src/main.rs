@@ -130,6 +130,10 @@ async fn exec(
         "stderr_tail":  String::from_utf8_lossy(
             &result.stderr[result.stderr.len().saturating_sub(4096)..]
         ),
+        "stdout": String::from_utf8_lossy(&result.stdout[..result.stdout.len().min(4096)]),
+        "stderr": String::from_utf8_lossy(
+            &result.stderr[result.stderr.len().saturating_sub(4096)..]
+        ),
     }))
 }
 

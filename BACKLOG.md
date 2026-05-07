@@ -87,7 +87,7 @@
   - Done when: hook unit-test (a script that pipes 5 sample commands as JSON and asserts which exit 0/2) added under `tests/hook_allowlist.sh` and passes; specifically `bash -c 'id'`, `podman run alpine`, `cargo build`, `ssh somehost`, `nohup …` all return exit 2.
   - Touch: `.claude/hooks/pre-bash-broker-only.sh`, `tests/hook_allowlist.sh`.
 
-- [ ] **3.1.2 Add `stdout` and `stderr` aliases to broker JSON output**
+- [x] **3.1.2 Add `stdout` and `stderr` aliases to broker JSON output**
   - Specialists/validator/narrator parse `.stdout` and `.stderr`; broker emits `.stdout_preview` and `.stderr_tail`. Add the bare names as additional keys (same content as the previews) so existing skill bodies work, AND keep the `_preview`/`_tail` keys for backwards compat.
   - Done when: `./bin/sb exec ... | jq -e '.stdout and .stderr and .stdout_preview and .stderr_tail'` returns true.
   - Touch: `broker/src/main.rs` (the `serde_json::json!` block in `exec`).

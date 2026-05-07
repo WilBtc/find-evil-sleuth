@@ -1,0 +1,16 @@
+feat(3.1.2): add stdout/stderr aliases to broker JSON output
+
+Add .stdout and .stderr keys (same content as .stdout_preview
+and .stderr_tail) to the broker exec JSON receipt so specialist
+agents can reference either form. Backwards-compatible -- both the
+old _preview/_tail names and the new bare names are present.
+
+Acceptance: ./bin/sb exec --case mini --tool fls --args '{...}'
+  | jq -e '.stdout and .stderr and .stdout_preview and .stderr_tail'
+returns true.
+
+Touch: broker/src/main.rs, bin/sb (rebuilt), tests/test_312_stdout_stderr_aliases.sh
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
