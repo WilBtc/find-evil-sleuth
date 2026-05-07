@@ -253,3 +253,66 @@
 - [x] **4.3.3 Final clone-from-clean smoke test**
   - On a fresh ubuntu-22.04 host (or fresh vm), follow README quickstart end-to-end. Time from `git clone` to a working `cite F-001` must be <60 min.
   - Done when: smoke test passes, time recorded in README.
+
+# Phase 5 — Inspector SaaS (ralph-driven)
+
+> Local-only audit-trail inspector. **The agent is the product; this is its viewing pane.** Judges run `./scripts/saas.sh up`, click around, and the audit-trail/architectural-guardrail story renders itself.
+>
+> Stack: Rust + axum 0.7 + Tera templates + HTMX + Tailwind (static build, no node toolchain). 6 pages. Talks directly to the existing Postgres (port 5532). Reuses sqlx pool pattern from evidence-store.
+>
+> One-week budget. If not done by **2026-05-14**, abandon and ship terminal-only.
+
+## P5.1 Scaffold
+
+- [ ] **5.1.1 New `saas/` Rust crate (axum + tera + tailwind static)**
+  - Workspace member `saas/`. axum 0.7, tower, tower-http (tracing, fs), tera 1, sqlx (reuse evidence-store db.rs pattern), tokio, serde. Tailwind CSS prebuilt to `saas/static/styles.css` from `saas/styles.in.css` via the `tailwindcss-cli` standalone binary (NO node).
+  - Layout template `saas/templates/_base.html` with HTMX 2.x bundled, navbar (Cases / Console), dark theme (dark gray + green accents — terminal aesthetic).
+  - Done when: `cargo build -p saas --release` produces `bin/sleuth-saas`, `./bin/sleuth-saas` listens on `0.0.0.0:8932` (port-registry reserved), `curl http://127.0.0.1:8932/` returns the layout HTML.
+  - Touch: `saas/Cargo.toml`, `saas/src/{main.rs,routes/mod.rs}`, `saas/templates/_base.html`, `saas/styles.in.css`, root `Cargo.toml` workspace member add.
+
+- [ ] **5.1.2 `scripts/saas.sh` one-command launcher**
+  - `./scripts/saas.sh up` ensures docker compose postgres is up, builds `bin/sleuth-saas` if missing, launches it, opens the browser to http://127.0.0.1:8932/. `down` stops it.
+  - Done when: from clean state, `up` brings everything online in <60s and the homepage renders.
+  - Touch: `scripts/saas.sh`.
+
+## P5.2 Pages (HTMX-driven)
+
+- [ ] **5.2.1 Page: Cases list (`/`)**
+  - SSR table of cases: case_id, name, started_at, status, finding count, confirmed/pending/refuted breakdown chips. Links to /case/:id. HTMX polling every 5s for live count updates.
+  - Done when: navigating to `/` lists every row in `cases` with live counts; click a row → drills into case detail.
+  - Touch: `saas/src/routes/cases.rs`, `saas/templates/cases_list.html`.
+
+- [ ] **5.2.2 Page: Case detail (`/case/:id`) — timeline + self-corrections**
+  - Vertically-stacked timeline of tool_calls (color-coded by exit_code), with self_corrections rendered as inline highlights ("vol3 failed → derive_profile → retry succeeded"). HTMX SSE stream from `/case/:id/events` (postgres LISTEN/NOTIFY on tool_calls + self_corrections + findings) for live updates.
+  - Done when: opening the LoneWolf case shows ≥80 tool_call rows, the 18 self_corrections are visibly inlined at the right timestamps, and a fresh investigate.sh run streams new events into the page in real time.
+  - Touch: `saas/src/routes/case.rs` (incl. SSE endpoint), `saas/templates/case_detail.html`, `saas/templates/_partials/tool_call_row.html`.
+
+- [ ] **5.2.3 Page: Findings table + drill-down (`/case/:id/findings`, `/finding/:fid`)**
+  - Sortable/filterable findings table: F-NNN, claim, specialist, MITRE, validation_status (color chip), confidence. Click F-NNN → modal/drawer showing the FULL `es cite` JSON with syntax highlighting, the tool_call args, the BLAKE3 hash, validation history. **This is criterion 5 made visual.**
+  - Done when: filter on `validation_status='confirmed' AND specialist='disk'` renders 34 rows; clicking F-007 shows the full audit JSON inline including the validating tool_call.
+  - Touch: `saas/src/routes/findings.rs`, `saas/templates/findings_*.html`.
+
+- [ ] **5.2.4 Page: Attack graph (`/case/:id/graph`) — AGE rendered visually**
+  - Server queries AGE for nodes/edges of the case, returns adjacency JSON. Frontend uses **vis-network** (single CDN'd JS file, no build) for force-directed render. Node colors by label (Process / File / NetworkEndpoint / RegistryKey / User / IOC); edge labels (SPAWNED / CONNECTED_TO / etc.). Click a node → side panel showing related findings.
+  - Done when: AGE graph for the LoneWolf case renders with ≥30 nodes, edges visible, clicking a Process node shows the findings that reference it.
+  - Touch: `saas/src/routes/graph.rs`, `saas/templates/graph.html`, `saas/static/vis-network.min.js` (vendor in).
+
+- [ ] **5.2.5 Page: Audit chain (`/case/:id/audit`) — Merkle roots**
+  - Linear list of `merkle_roots` rows for the case, oldest at top. For each root: rolled_up_at, root_hash (truncated → click reveals full), prev_root link to previous, leaf_count, "verify" button that re-derives the root from leaves and shows match. Highlight any tampering.
+  - Done when: audit page renders ≥1 merkle root for LoneWolf case; verify button shows green check on a clean DB; manually corrupting a tool_call stdout_hash flips the verify to red.
+  - Touch: `saas/src/routes/audit.rs`, `saas/templates/audit.html`, also a `verify` SQL function in `migrations/014_merkle_verify.sql` (computes root from leaves — pure SQL).
+
+- [ ] **5.2.6 Page: Read-only psql console (`/console`)**
+  - Browser-side SQL editor (CodeMirror via CDN, no build). Backend executes against `sleuth_ro` role only. SSE/HTMX swaps result rows into a table. Pre-canned query buttons: "Top 10 confirmed findings", "All self-corrections last hour", "Findings by MITRE", etc. **Lets judges run their own queries.** Heavy criterion 5 + 6 win.
+  - Done when: judges can run `SELECT * FROM findings LIMIT 10;` and see results; `INSERT INTO findings ...` returns permission denied.
+  - Touch: `saas/src/routes/console.rs`, `saas/templates/console.html`.
+
+## P5.3 Polish + integration
+
+- [ ] **5.3.1 Demo-ready seed data + cron-driven live update theatre**
+  - Ensure the `lone-wolf-1778168581` case is the default landing case. A small cron (every 60s) re-runs the validator on a small sample to keep the timeline visibly active for judges who land on the page mid-investigation. Toggle via `~/.sleuth-saas-theatre`.
+  - Done when: opening `/case/lone-wolf-1778168581` mid-day shows a tool_call dated <2 min ago.
+
+- [ ] **5.3.2 README + DEMO_SCRIPT update with SaaS tease**
+  - README: 30-second SaaS section with one screenshot, link to `./scripts/saas.sh up`. DEMO_SCRIPT: insert a 30-second "and here's the persistent inspector" beat at 4:30, before the wrap. Total demo stays ≤5 min.
+  - Done when: README + DEMO_SCRIPT updated, screenshots in `docs/saas-screenshots/`.
