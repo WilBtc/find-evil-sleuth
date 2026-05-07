@@ -189,9 +189,10 @@
 
 ## P3.4 Self-correction demo prep (Phase 4 setup)
 
-- [ ] **3.4.1 `scripts/inject-corruption.sh` for LoneWolf**
+- [x] **3.4.1 `scripts/inject-corruption.sh` for LoneWolf**
   - Per `plans/06-self-correction-demos.md`: truncate pcap by 4096 bytes; mis-state vol3 OS family hint in case manifest. Both deterministic, idempotent, reversible (script also has `--restore`).
   - Done when: running the script then executing investigate.sh produces both self-corrections visible in `self_corrections` table; restore brings evidence back to clean state.
+  - DONE: scripts/inject-corruption.sh + evidence-samples/lone-wolf/manifest.json created. Inject sets memory.os_family_hint="linux" and truncates pcap -4096 bytes; idempotent on re-run; --restore returns both files to clean state (verified: pcap 134359290→134355194→134359290 bytes, manifest windows→linux→windows).
 
 - [ ] **3.4.2 Three consecutive clean investigate.sh runs against corrupted LoneWolf**
   - Each run completes, both self-corrections fire and recover, narrator marks affected findings `confidence=partial`. Build any retry-prompt tweaks needed for reliability.

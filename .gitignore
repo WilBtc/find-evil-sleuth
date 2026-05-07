@@ -7,6 +7,7 @@ Cargo.lock.*
 evidence-samples/lone-wolf/
 evidence-samples/*/
 !evidence-samples/README.md
+!evidence-samples/lone-wolf/manifest.json
 
 # Postgres data
 docker/postgres/pg_data/

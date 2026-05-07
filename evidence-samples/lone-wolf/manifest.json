@@ -1,0 +1,28 @@
+{
+  "scenario": "2018-lone-wolf",
+  "sources": {
+    "disk": "https://digitalcorpora.org/corpora/scenarios/2018-lone-wolf-scenario/",
+    "memory": "https://digitalcorpora.org/corpora/scenarios/2018-lone-wolf-scenario/",
+    "network": "https://digitalcorpora.org/corpora/scenarios/m57-patents-scenario/"
+  },
+  "disk": {
+    "segments": [
+      "LoneWolf.E01",
+      "LoneWolf.E02",
+      "LoneWolf.E03",
+      "LoneWolf.E04",
+      "LoneWolf.E05",
+      "LoneWolf.E06",
+      "LoneWolf.E07",
+      "LoneWolf.E08",
+      "LoneWolf.E09"
+    ]
+  },
+  "memory": {
+    "file": "memdump.mem",
+    "os_family_hint": "windows"
+  },
+  "network": {
+    "file": "m57-net-2009-12-06.pcap.gz"
+  }
+}
