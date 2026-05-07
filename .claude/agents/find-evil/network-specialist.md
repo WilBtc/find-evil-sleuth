@@ -50,52 +50,52 @@ Read and follow: `.claude/skills/find-evil/network-forensics/SKILL.md`
 4. **Run protocol hierarchy** (`tshark -z io,phs`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool tshark \
-     --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","extra_args":["-q","-z","io,phs"]}'
+     --args '{"pcap":"/case/traffic.pcap","extra_args":["-q","-z","io,phs"]}'
    ```
    Parse the JSON response: `stdout_preview` contains protocol breakdown.
 
 5. **Extract IP endpoints and conversations**:
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool tshark \
-     --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","ip.proto","-e","frame.len","-E","header=y"]}'
+     --args '{"pcap":"/case/traffic.pcap","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","ip.proto","-e","frame.len","-E","header=y"]}'
    ```
    Flag external IPs (non-RFC1918) and high-volume pairs.
 
 6. **Analyze DNS traffic**:
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool tshark \
-     --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"dns","extra_args":["-T","fields","-e","ip.src","-e","dns.qry.name","-e","dns.resp.addr","-E","header=y"]}'
+     --args '{"pcap":"/case/traffic.pcap","display_filter":"dns","extra_args":["-T","fields","-e","ip.src","-e","dns.qry.name","-e","dns.resp.addr","-E","header=y"]}'
    ```
 
 7. **Analyze HTTP traffic**:
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool tshark \
-     --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"http","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","http.request.method","-e","http.host","-e","http.request.uri","-e","http.user_agent","-E","header=y"]}'
+     --args '{"pcap":"/case/traffic.pcap","display_filter":"http","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","http.request.method","-e","http.host","-e","http.request.uri","-e","http.user_agent","-E","header=y"]}'
    ```
 
 8. **Analyze ICMP traffic**:
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool tshark \
-     --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"icmp","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","ip.dst","-e","icmp.type","-e","icmp.code","-e","frame.len","-E","header=y"]}'
+     --args '{"pcap":"/case/traffic.pcap","display_filter":"icmp","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","ip.dst","-e","icmp.type","-e","icmp.code","-e","frame.len","-E","header=y"]}'
    ```
    Flag large payloads (> 64 bytes) as possible tunneling.
 
 9. **Run TCP SYN analysis**:
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool tshark \
-     --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"tcp.flags.syn==1 and tcp.flags.ack==0","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","tcp.dstport","-E","header=y"]}'
+     --args '{"pcap":"/case/traffic.pcap","display_filter":"tcp.flags.syn==1 and tcp.flags.ack==0","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","tcp.dstport","-E","header=y"]}'
    ```
 
 10. **Run zeek analysis**:
     ```bash
     ./bin/sb exec --case <CASE_ID> --tool zeek \
-      --args '{"pcap":"/case/<CASE_ID>/traffic.pcap"}'
+      --args '{"pcap":"/case/traffic.pcap"}'
     ```
 
 11. **Run conversation statistics**:
     ```bash
     ./bin/sb exec --case <CASE_ID> --tool tshark \
-      --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","extra_args":["-q","-z","conv,ip"]}'
+      --args '{"pcap":"/case/traffic.pcap","extra_args":["-q","-z","conv,ip"]}'
     ```
 
 12. **Record findings** after each tool call:

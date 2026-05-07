@@ -11,7 +11,7 @@ access goes through `./bin/sb exec`.
 ## Inputs
 
 - `CASE_ID` — env var or argument; e.g. `phase15-mem-001`
-- `/case/<CASE_ID>/` — evidence root (read-only via broker)
+- `/case/` — evidence root (read-only via broker)
 - One memory image: `.mem`, `.raw`, `.vmem`, `.dmp`
 
 ## Outputs
@@ -37,7 +37,7 @@ Run `windows.info` to identify the memory image and OS build:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.info"}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.info"}'
 ```
 
 Parse stdout for `NtBuildLab`, `NtProductType`, `NtMajorVersion`, kernel base,
@@ -59,7 +59,7 @@ If `windows.info` exits non-zero (profile mismatch), store profile in
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.pslist"}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.pslist"}'
 ```
 
 Parse stdout for process entries. Look for:
@@ -87,7 +87,7 @@ For each suspicious process found, record an additional individual finding.
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.pstree"}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.pstree"}'
 ```
 
 Parse stdout for parent-child anomalies:
@@ -102,7 +102,7 @@ Record a finding for each anomalous parent-child relationship found.
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.cmdline"}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.cmdline"}'
 ```
 
 Parse stdout for suspicious command lines. Look for:
@@ -128,7 +128,7 @@ For each suspicious command line, record a finding:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.malfind"}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.malfind"}'
 ```
 
 Parse stdout for regions with:
@@ -155,7 +155,7 @@ summarize the rest in one finding.
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.netscan"}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.netscan"}'
 ```
 
 Parse stdout for active and closed connections. Look for:
@@ -180,7 +180,7 @@ For each suspicious connection or network IOC, record a finding:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.svcscan"}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.svcscan"}'
 ```
 
 Parse stdout for:
@@ -207,13 +207,13 @@ Check known persistence locations. Run the plugin for each key:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.registry.printkey","extra_args":["--key","Software\\Microsoft\\Windows\\CurrentVersion\\Run"]}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.registry.printkey","extra_args":["--key","Software\\Microsoft\\Windows\\CurrentVersion\\Run"]}'
 
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.registry.printkey","extra_args":["--key","Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce"]}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.registry.printkey","extra_args":["--key","Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce"]}'
 
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.registry.printkey","extra_args":["--key","SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options"]}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.registry.printkey","extra_args":["--key","SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options"]}'
 ```
 
 For each value present in `Run` / `RunOnce` keys, record a finding:
@@ -236,7 +236,7 @@ For any process flagged in Steps 2–5, check its loaded DLLs:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool vol3 \
-  --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.dlllist","pid":<pid>}'
+  --args '{"image":"/case/memory.mem","plugin":"windows.dlllist","pid":<pid>}'
 ```
 
 Look for:
@@ -296,7 +296,7 @@ to meet the 10-finding minimum.
 - MUST use `./bin/sb exec` for every vol3 plugin call.
 - MUST use `./bin/es record-finding` for every finding.
 - MUST NOT run `vol` or any other forensics binary directly in bash.
-- MUST NOT write files outside `/case/<CASE_ID>/` (broker enforces this).
+- MUST NOT write files to `/case/` (read-only). Write outputs to `/scratch/`.
 - MUST exit 0 when ≥10 findings have been recorded; exit 1 only on fatal error
   (e.g. memory image not found, DB unreachable).
 

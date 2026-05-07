@@ -11,7 +11,7 @@ read evidence directly — all tool access goes through `./bin/sb exec`.
 ## Inputs
 
 - `CASE_ID` — env var or argument; e.g. `net-forensics-001`
-- `/case/<CASE_ID>/` — evidence root (read-only via broker)
+- `/case/` — evidence root (read-only via broker)
 - One or more pcap/pcapng files: `.pcap`, `.pcapng`, `.cap`
 
 ## Outputs
@@ -37,14 +37,14 @@ Run a packet count and protocol hierarchy to understand the capture:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","extra_args":["-q","-z","proto,colinfo,ip,ip"]}'
+  --args '{"pcap":"/case/traffic.pcap","extra_args":["-q","-z","proto,colinfo,ip,ip"]}'
 ```
 
 Then get the full protocol hierarchy:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","extra_args":["-q","-z","io,phs"]}'
+  --args '{"pcap":"/case/traffic.pcap","extra_args":["-q","-z","io,phs"]}'
 ```
 
 Parse stdout for total packet count, unique protocols, top talkers.
@@ -63,14 +63,14 @@ Record a summary finding:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","extra_args":["-q","-z","ip_hosts,tree"]}'
+  --args '{"pcap":"/case/traffic.pcap","extra_args":["-q","-z","ip_hosts,tree"]}'
 ```
 
 Alternatively use field extraction:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","ip.proto","-e","frame.len","-E","header=y"]}'
+  --args '{"pcap":"/case/traffic.pcap","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","ip.proto","-e","frame.len","-E","header=y"]}'
 ```
 
 Parse for:
@@ -94,7 +94,7 @@ Record a finding per suspicious host pair:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"dns","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","dns.qry.name","-e","dns.resp.addr","-E","header=y"]}'
+  --args '{"pcap":"/case/traffic.pcap","display_filter":"dns","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","dns.qry.name","-e","dns.resp.addr","-E","header=y"]}'
 ```
 
 Look for:
@@ -120,7 +120,7 @@ Record a finding per suspicious DNS query:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"http","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","ip.dst","-e","http.request.method","-e","http.host","-e","http.request.uri","-e","http.user_agent","-E","header=y"]}'
+  --args '{"pcap":"/case/traffic.pcap","display_filter":"http","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","ip.dst","-e","http.request.method","-e","http.host","-e","http.request.uri","-e","http.user_agent","-E","header=y"]}'
 ```
 
 Look for:
@@ -146,14 +146,14 @@ Record a finding per suspicious HTTP request:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"tls.handshake.type == 11","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","tls.handshake.certificate","-e","x509sat.uTF8String","-E","header=y"]}'
+  --args '{"pcap":"/case/traffic.pcap","display_filter":"tls.handshake.type == 11","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","tls.handshake.certificate","-e","x509sat.uTF8String","-E","header=y"]}'
 ```
 
 Also check SNI values:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"tls.handshake.extensions_server_name","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","tls.handshake.extensions_server_name","-E","header=y"]}'
+  --args '{"pcap":"/case/traffic.pcap","display_filter":"tls.handshake.extensions_server_name","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","tls.handshake.extensions_server_name","-E","header=y"]}'
 ```
 
 Look for:
@@ -178,7 +178,7 @@ Record a finding per suspicious TLS session:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"icmp","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","ip.dst","-e","icmp.type","-e","icmp.code","-e","frame.len","-E","header=y"]}'
+  --args '{"pcap":"/case/traffic.pcap","display_filter":"icmp","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","ip.dst","-e","icmp.type","-e","icmp.code","-e","frame.len","-E","header=y"]}'
 ```
 
 Look for:
@@ -203,7 +203,7 @@ Record a finding per suspicious ICMP pattern:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","display_filter":"tcp.flags.syn==1 and tcp.flags.ack==0","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","ip.dst","-e","tcp.dstport","-E","header=y"]}'
+  --args '{"pcap":"/case/traffic.pcap","display_filter":"tcp.flags.syn==1 and tcp.flags.ack==0","extra_args":["-T","fields","-e","frame.time_epoch","-e","ip.src","-e","ip.dst","-e","tcp.dstport","-E","header=y"]}'
 ```
 
 Look for:
@@ -228,7 +228,7 @@ Record a finding per suspicious TCP pattern:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool zeek \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap"}'
+  --args '{"pcap":"/case/traffic.pcap"}'
 ```
 
 Zeek generates structured logs. Parse stdout for:
@@ -253,7 +253,7 @@ Record a finding for each significant zeek observation:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tshark \
-  --args '{"pcap":"/case/<CASE_ID>/traffic.pcap","extra_args":["-q","-z","conv,ip"]}'
+  --args '{"pcap":"/case/traffic.pcap","extra_args":["-q","-z","conv,ip"]}'
 ```
 
 Parse for:
@@ -277,7 +277,7 @@ Record a finding for each suspicious flow:
 
 If `tshark` exits non-zero (corrupted pcap header, truncated capture):
 
-1. Try `editcap` to recover: `{"input":"/case/<CASE_ID>/traffic.pcap","output":"/case/<CASE_ID>/traffic-recovered.pcap"}`.
+1. Try `editcap` to recover: `{"input":"/case/traffic.pcap","output":"/scratch/traffic-recovered.pcap"}`.
 2. Re-run the failed step against the recovered file.
 3. Record a finding noting the repair action.
 

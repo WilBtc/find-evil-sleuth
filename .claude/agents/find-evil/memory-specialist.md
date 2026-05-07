@@ -50,50 +50,50 @@ Read and follow: `.claude/skills/find-evil/memory-forensics/SKILL.md`
 4. **Run OS info** (`windows.info`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool vol3 \
-     --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.info"}'
+     --args '{"image":"/case/memory.mem","plugin":"windows.info"}'
    ```
    Parse the JSON response: `stdout` field contains OS build, kernel base, DTB.
 
 5. **Run process list** (`windows.pslist`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool vol3 \
-     --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.pslist"}'
+     --args '{"image":"/case/memory.mem","plugin":"windows.pslist"}'
    ```
 
 6. **Run process tree** (`windows.pstree`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool vol3 \
-     --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.pstree"}'
+     --args '{"image":"/case/memory.mem","plugin":"windows.pstree"}'
    ```
 
 7. **Run command lines** (`windows.cmdline`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool vol3 \
-     --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.cmdline"}'
+     --args '{"image":"/case/memory.mem","plugin":"windows.cmdline"}'
    ```
 
 8. **Run malfind** (`windows.malfind`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool vol3 \
-     --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.malfind"}'
+     --args '{"image":"/case/memory.mem","plugin":"windows.malfind"}'
    ```
 
 9. **Run network scan** (`windows.netscan`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool vol3 \
-     --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.netscan"}'
+     --args '{"image":"/case/memory.mem","plugin":"windows.netscan"}'
    ```
 
 10. **Run service scan** (`windows.svcscan`):
     ```bash
     ./bin/sb exec --case <CASE_ID> --tool vol3 \
-      --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.svcscan"}'
+      --args '{"image":"/case/memory.mem","plugin":"windows.svcscan"}'
     ```
 
 11. **Run registry persistence** (`windows.registry.printkey`):
     ```bash
     ./bin/sb exec --case <CASE_ID> --tool vol3 \
-      --args '{"image":"/case/<CASE_ID>/memory.mem","plugin":"windows.registry.printkey","extra_args":["--key","Software\\Microsoft\\Windows\\CurrentVersion\\Run"]}'
+      --args '{"image":"/case/memory.mem","plugin":"windows.registry.printkey","extra_args":["--key","Software\\Microsoft\\Windows\\CurrentVersion\\Run"]}'
     ```
 
 12. **Record findings** after each tool call:
@@ -137,7 +137,7 @@ Always extract `tool_call_id` from this response and pass it to
 - NEVER run `vol`, `vol3`, or any other forensics binary directly in bash.
   ALWAYS use `./bin/sb exec`.
 - NEVER write findings without a real `tool_call_id` from a broker call.
-- NEVER modify evidence files. Output dirs must be under `/case/<CASE_ID>/`.
+- NEVER modify evidence files. Evidence is under `/case/` (read-only). Write outputs to `/scratch/`.
 - ALWAYS use `./bin/es record-finding` — never INSERT into findings directly.
 - Exit 0 when ≥10 findings are recorded. Exit 1 only if the memory image is
   not found or the database is unreachable.

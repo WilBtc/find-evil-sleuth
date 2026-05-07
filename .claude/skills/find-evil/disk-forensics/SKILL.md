@@ -11,7 +11,7 @@ all tool access goes through `./bin/sb exec`.
 ## Inputs
 
 - `CASE_ID` — env var or argument; e.g. `phase15-1778089502`
-- `/case/<CASE_ID>/` — evidence root (read-only via broker)
+- `/case/` — evidence root (read-only via broker)
 - One or more disk images: `.img`, `.dd`, `.E01`, `.raw`
 
 ## Outputs
@@ -37,7 +37,7 @@ Run `mmls` to discover partitions:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool mmls \
-  --args '{"image":"/case/<CASE_ID>/disk.img"}'
+  --args '{"image":"/case/disk.img"}'
 ```
 
 Parse stdout for partition entries. Look for lines like:
@@ -66,7 +66,7 @@ For each data partition (use sector offset from Step 1):
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool fls \
-  --args '{"image":"/case/<CASE_ID>/disk.img","offset":<sector_offset>,"recursive":true}'
+  --args '{"image":"/case/disk.img","offset":<sector_offset>,"recursive":true}'
 ```
 
 Parse stdout for interesting entries. Look for:
@@ -93,7 +93,7 @@ Record a summary finding for total file count and deleted file count.
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool tsk_recover \
-  --args '{"image":"/case/<CASE_ID>/disk.img","output_dir":"/case/<CASE_ID>/recovered","offset":<offset>}'
+  --args '{"image":"/case/disk.img","output_dir":"/scratch/recovered","offset":<offset>}'
 ```
 
 Record a finding for recovered file count if any are found.
@@ -105,11 +105,11 @@ disk image or recovered files:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool yara \
-  --args '{"rules":"/case/<CASE_ID>/rules.yar","target":"/case/<CASE_ID>/disk.img","recursive":false}'
+  --args '{"rules":"/case/rules.yar","target":"/case/disk.img","recursive":false}'
 ```
 
 If no external rules file is available, create a minimal inline rules file at
-`/case/<CASE_ID>/minimal.yar` with patterns for common malware strings
+`/scratch/minimal.yar` with patterns for common malware strings
 (MZ headers, PowerShell encoded commands, base64 blobs, common C2 strings)
 and scan with that.
 
@@ -129,7 +129,7 @@ For each YARA match, record a finding:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool bulk_extractor \
-  --args '{"image":"/case/<CASE_ID>/disk.img","output_dir":"/case/<CASE_ID>/bulk_out"}'
+  --args '{"image":"/case/disk.img","output_dir":"/scratch/bulk_out"}'
 ```
 
 Parse the output for carved artifacts. Look for:
@@ -161,14 +161,14 @@ If the image contains a supported filesystem, build a mactime timeline:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool log2timeline \
-  --args '{"image":"/case/<CASE_ID>/disk.img","output_file":"/case/<CASE_ID>/timeline.plaso"}'
+  --args '{"image":"/case/disk.img","output_file":"/scratch/timeline.plaso"}'
 ```
 
 Then filter and sort:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool psort \
-  --args '{"input":"/case/<CASE_ID>/timeline.plaso","output_file":"/case/<CASE_ID>/timeline.csv"}'
+  --args '{"input":"/scratch/timeline.plaso","output_file":"/scratch/timeline.csv"}'
 ```
 
 Look for anomalies: files modified in suspicious date ranges, files with
@@ -181,7 +181,7 @@ For any high-interest inode discovered in Steps 2–3, extract the file content:
 
 ```bash
 ./bin/sb exec --case <CASE_ID> --tool icat \
-  --args '{"image":"/case/<CASE_ID>/disk.img","inode":<inode>,"offset":<offset>}'
+  --args '{"image":"/case/disk.img","inode":<inode>,"offset":<offset>}'
 ```
 
 Record a finding for any extracted file whose content is suspicious.
@@ -204,15 +204,14 @@ URLs each as separate findings).
   and continue to the next step. Do NOT stop the investigation.
 - If `./bin/sb exec` itself fails (network error, broker down), retry once. If
   it fails again, record a finding noting the tool failure and continue.
-- Never modify evidence files. All output goes to `/case/<CASE_ID>/` subdirs
-  created by the tool or already present.
+- Never modify evidence files. Evidence is under `/case/` (read-only); outputs go to `/scratch/`.
 
 ## Constraints
 
 - MUST use `./bin/sb exec` for every forensics tool call.
 - MUST use `./bin/es record-finding` for every finding.
 - MUST NOT run `mmls`, `fls`, `yara`, or any other forensics binary directly.
-- MUST NOT write files outside `/case/<CASE_ID>/` (broker enforces this).
+- MUST NOT write files to `/case/` (read-only). Write outputs to `/scratch/`.
 - MUST exit 0 when ≥10 findings have been recorded; exit 1 only on fatal error
   (e.g. image not found, DB unreachable).
 

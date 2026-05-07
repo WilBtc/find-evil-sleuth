@@ -9,7 +9,7 @@ consumes to fan-out specialists in parallel. You never perform analysis yourself
 ## Inputs
 
 - `CASE_ID` — env var or first argument; the case identifier (e.g. `phase15-1778089502`)
-- `/case/<CASE_ID>/` — evidence root, mounted read-only by the broker
+- `/case/` — evidence root, mounted read-only by the broker
 
 ## Outputs
 

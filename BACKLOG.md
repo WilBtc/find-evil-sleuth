@@ -98,7 +98,7 @@
   - Done when: `./bin/sb exec --case <id> --tool tsk_recover --args '{"image":"/case/disk.img","output_dir":"/scratch/recovered"}'` exits 0 and the recovered dir exists on host under `/var/sleuth/scratch/<id>/recovered/`.
   - Touch: `broker/src/podman.rs`, `migrations/006_output_paths_scratch.sql` (a new migration that ALTERs the seed rows; do not edit 002 in place).
 
-- [ ] **3.1.4 Fix specialist paths from `/case/<CASE_ID>/file` to `/case/file`**
+- [x] **3.1.4 Fix specialist paths from `/case/<CASE_ID>/file` to `/case/file`**
   - Skills + agents for disk, memory, network all show example tool calls using `/case/<CASE_ID>/disk.img` etc. — but broker bind-mounts the case dir AS `/case`, so the correct path is `/case/disk.img` (no case_id segment). The network scaffold test uses the right path; everything else is wrong.
   - Audit all six skill bodies + six agent files; replace `/case/<CASE_ID>/` and `/case/${CASE_ID}/` with `/case/`.
   - Done when: `grep -rE '/case/<?CASE_ID' .claude/skills/find-evil .claude/agents/find-evil` returns nothing AND a smoke run of the disk specialist on the phase15 mini-case succeeds.

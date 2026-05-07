@@ -50,32 +50,32 @@ Read and follow: `.claude/skills/find-evil/disk-forensics/SKILL.md`
 4. **Run partition map** (`mmls`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool mmls \
-     --args '{"image":"/case/<CASE_ID>/<image_file>"}'
+     --args '{"image":"/case/<image_file>"}'
    ```
    Parse the JSON response: `stdout` field contains partition table.
 
 5. **List filesystem contents** (`fls`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool fls \
-     --args '{"image":"/case/<CASE_ID>/<image_file>","offset":<sector>,"recursive":true}'
+     --args '{"image":"/case/<image_file>","offset":<sector>,"recursive":true}'
    ```
 
 6. **Recover deleted files** (`tsk_recover`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool tsk_recover \
-     --args '{"image":"/case/<CASE_ID>/<image_file>","output_dir":"/case/<CASE_ID>/recovered","offset":<sector>}'
+     --args '{"image":"/case/<image_file>","output_dir":"/scratch/recovered","offset":<sector>}'
    ```
 
 7. **Carve IOCs** (`bulk_extractor`):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool bulk_extractor \
-     --args '{"image":"/case/<CASE_ID>/<image_file>","output_dir":"/case/<CASE_ID>/bulk_out"}'
+     --args '{"image":"/case/<image_file>","output_dir":"/scratch/bulk_out"}'
    ```
 
 8. **YARA scan** (if rules file available):
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool yara \
-     --args '{"rules":"/case/<CASE_ID>/rules.yar","target":"/case/<CASE_ID>/<image_file>"}'
+     --args '{"rules":"/case/rules.yar","target":"/case/<image_file>"}'
    ```
 
 9. **Record findings** after each tool call:
@@ -120,7 +120,7 @@ Always extract `tool_call_id` from this response and pass it to
 - NEVER run `mmls`, `fls`, `bulk_extractor`, `yara`, or any forensics binary
   directly in bash. ALWAYS use `./bin/sb exec`.
 - NEVER write findings without a real `tool_call_id` from a broker call.
-- NEVER modify evidence files. Output dirs must be under `/case/<CASE_ID>/`.
+- NEVER modify evidence files. Evidence is under `/case/` (read-only). Write outputs to `/scratch/`.
 - ALWAYS use `./bin/es record-finding` — never INSERT into findings directly.
 - Exit 0 when ≥10 findings are recorded. Exit 1 only if the disk image is
   not found or the database is unreachable.
