@@ -228,7 +228,7 @@
 
 ## P4.2 Demo video
 
-- [ ] **4.2.1 Demo script (`docs/DEMO_SCRIPT.md`)**
+- [x] **4.2.1 Demo script (`docs/DEMO_SCRIPT.md`)**
   - Beat-by-beat narration aligned to plans/06-self-correction-demos.md (problem → architecture → live run → vol3 self-correction → pcap self-correction → `es cite` → wrap). ≤5 min total.
   - Done when: script written, all timestamps add up to ≤5 min, every claim in the narration is verifiable from the audit DB.
 
