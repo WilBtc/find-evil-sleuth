@@ -264,7 +264,7 @@
 
 ## P5.1 Scaffold
 
-- [ ] **5.1.1 New `saas/` Rust crate (axum + tera + tailwind static)**
+- [x] **5.1.1 New `saas/` Rust crate (axum + tera + tailwind static)**
   - Workspace member `saas/`. axum 0.7, tower, tower-http (tracing, fs), tera 1, sqlx (reuse evidence-store db.rs pattern), tokio, serde. Tailwind CSS prebuilt to `saas/static/styles.css` from `saas/styles.in.css` via the `tailwindcss-cli` standalone binary (NO node).
   - Layout template `saas/templates/_base.html` with HTMX 2.x bundled, navbar (Cases / Console), dark theme (dark gray + green accents — terminal aesthetic).
   - Done when: `cargo build -p saas --release` produces `bin/sleuth-saas`, `./bin/sleuth-saas` listens on `0.0.0.0:8932` (port-registry reserved), `curl http://127.0.0.1:8932/` returns the layout HTML.

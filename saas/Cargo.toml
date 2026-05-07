@@ -1,0 +1,24 @@
+[package]
+name        = "saas"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Inspector SaaS — local-only audit-trail viewer for find-evil-sleuth."
+
+[[bin]]
+name = "sleuth-saas"
+path = "src/main.rs"
+
+[dependencies]
+tokio        = { workspace = true }
+sqlx         = { workspace = true }
+serde        = { workspace = true }
+serde_json   = { workspace = true }
+anyhow       = { workspace = true }
+tracing      = { workspace = true }
+tracing-subscriber = { workspace = true }
+axum         = { workspace = true }
+tower        = { workspace = true }
+tower-http   = { workspace = true }
+tera         = { workspace = true }
