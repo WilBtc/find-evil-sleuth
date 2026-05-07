@@ -54,5 +54,5 @@ impl BlobWriter {
 pub fn default_root() -> PathBuf {
     std::env::var("SLEUTH_BLOB_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| Path::new("/var/sleuth/blobs").to_path_buf())
+        .unwrap_or_else(|_| Path::new("./var/sleuth/blobs").to_path_buf())
 }
