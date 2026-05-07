@@ -170,9 +170,10 @@
   - tshark/zeek/suricata against the LoneWolf pcap. ≥20 confirmed network findings.
   - DONE: 24 confirmed network findings using tshark (protocol hierarchy, IP endpoints, DNS, HTTP, TLS, ICMP, TCP SYN, UDP, ARP, SMTP, FTP, SMB, expert info, conversations) + zeek against M57-Patents PCAP (m57-net-2009-12-06.pcap.gz). Key finding: 192.168.1.103 transferred 54MB+19MB from external IPs (198.189.255.76/74) consistent with data exfiltration.
 
-- [ ] **3.3.5 Full investigate.sh end-to-end on LoneWolf, narrator emits report**
+- [x] **3.3.5 Full investigate.sh end-to-end on LoneWolf, narrator emits report**
   - `./scripts/investigate.sh evidence-samples/lone-wolf/` runs the full state machine. Produces `cases/lone-wolf-<ts>/report.md` with `[F-NNN]` cites for at least 60 confirmed findings.
   - Done when: report.md committed under a `case/lone-wolf-<date>` branch with execution log.
+  - DONE: cases/lone-wolf-1778168581/report.md — 79 confirmed findings (34 disk + 21 memory + 24 network), all 79 [F-NNN] cited, citation check PASSED. Fixed investigate.sh PYTHONPATH and adws/__init__.py.
 
 ## P3.4 Self-correction demo prep (Phase 4 setup)
 

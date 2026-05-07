@@ -42,4 +42,4 @@ echo >&2 "  case id  : $CASE_ID"
 echo >&2 "  model    : ${MODEL_DEFAULT:-claude-sonnet-4-6}"
 echo >&2 ""
 
-exec python3 adws/investigate.py "$CASE_DIR" "${EXTRA_ARGS[@]}"
+PYTHONPATH="$(pwd):${PYTHONPATH:-}" exec python3 adws/investigate.py "$CASE_DIR" "${EXTRA_ARGS[@]}"
