@@ -199,3 +199,56 @@
 - [ ] **3.4.2 Three consecutive clean investigate.sh runs against corrupted LoneWolf**
   - Each run completes, both self-corrections fire and recover, narrator marks affected findings `confidence=partial`. Build any retry-prompt tweaks needed for reliability.
   - Done when: three consecutive runs all pass; obs event timeline for each shows the same two self-correction events at predictable points.
+
+# Phase 4 — Submission deliverables (ralph-driven)
+
+> Goal: meet every Devpost requirement and have a submission-ready repo. Most tasks are content (Markdown/SVG/video planning) — fast for ralph.
+
+## P4.1 Documentation
+
+- [ ] **4.1.1 Architecture diagram (`docs/architecture.svg`)**
+  - Use the excalidraw-diagram skill from `~/.claude/skills/`. Show: PreToolUse hook → broker → podman+seccomp → tools → evidence-store → Postgres (with extension callouts: pgvector, AGE, Timescale, pgaudit) → obs → ADW outloop. Annotate the architectural-guardrail boundary.
+  - Done when: `docs/architecture.svg` exists, opens in any SVG viewer, includes a legend identifying the architectural-guardrail boundary, and is referenced from README.
+
+- [ ] **4.1.2 README rewrite for submission**
+  - Sections in this order: tagline, what-it-is (3 paragraphs), one-command quickstart (clone → docker compose up → fetch evidence → investigate.sh → cite F-001), architecture diagram embed, judging-criteria→design table, plans/ pointer, license, citations.
+  - Done when: a fresh-VM `README.md` walkthrough completes from `git clone` to a working `cite F-NNN` invocation in <60 min.
+
+- [ ] **4.1.3 EVIDENCE.md (`docs/EVIDENCE.md`)**
+  - Provenance + SHA256 of every file in `evidence-samples/lone-wolf/`. Source URLs (digitalcorpora.s3). License notes. Summary of what the agent found vs SANS-published ground truth (if available).
+  - Done when: `docs/EVIDENCE.md` lists all 12 files with hashes, provenance, and at least 5 cross-references to specific findings (`F-NNN`).
+
+- [ ] **4.1.4 ACCURACY.md (`docs/ACCURACY.md`)**
+  - Honest self-assessment per criterion 2. Table: confirmed / refuted / inconclusive counts. List 2–3 known misses. List any false positives caught by the validator. List any hallucinations the model proposed and the validator caught.
+  - Done when: `docs/ACCURACY.md` has those sections populated from real DB data via `psql` queries shown inline.
+
+- [ ] **4.1.5 Execution log export (`submission/execution-log.ndjson`)**
+  - `scripts/export-execution-log.sh` dumps obs events + tool_calls + findings + validation_runs + self_corrections to NDJSON sorted by timestamp. One file judges can grep.
+  - Done when: script runs end-to-end, `wc -l submission/execution-log.ndjson` returns >500 (real data from a LoneWolf run), each line is valid JSON.
+
+## P4.2 Demo video
+
+- [ ] **4.2.1 Demo script (`docs/DEMO_SCRIPT.md`)**
+  - Beat-by-beat narration aligned to plans/06-self-correction-demos.md (problem → architecture → live run → vol3 self-correction → pcap self-correction → `es cite` → wrap). ≤5 min total.
+  - Done when: script written, all timestamps add up to ≤5 min, every claim in the narration is verifiable from the audit DB.
+
+- [ ] **4.2.2 Record demo video (terminal screencast + audio)**
+  - Use `kooha-recorder` skill. 1080p60, mp4, mic on, desktop audio off. Three takes minimum; keep the best as `submission/demo.mp4`. Backup takes preserved.
+  - Done when: ≤5 min mp4 in `submission/demo.mp4` matching DEMO_SCRIPT.md, both self-corrections visible.
+
+- [ ] **4.2.3 Upload to YouTube unlisted, link in submission**
+  - Done when: YouTube unlisted URL recorded in `submission/devpost-form.md`.
+
+## P4.3 Submission packaging
+
+- [ ] **4.3.1 GitHub mirror at `wilaroca2021/find-evil-sleuth`**
+  - Push from Gitea to GitHub. Verify Apache-2.0 detected in About sidebar. Public.
+  - Done when: GitHub repo exists, public, Apache-2.0 detected, has a mirror-status note in README.
+
+- [ ] **4.3.2 Devpost form (`submission/devpost-form.md`)**
+  - Fill: project name, tagline, description (3 paragraphs), video URL, code repo URL, "built with" tech list, "try it out" link.
+  - Done when: every Devpost field has draft content in this file.
+
+- [ ] **4.3.3 Final clone-from-clean smoke test**
+  - On a fresh ubuntu-22.04 host (or fresh vm), follow README quickstart end-to-end. Time from `git clone` to a working `cite F-001` must be <60 min.
+  - Done when: smoke test passes, time recorded in README.
