@@ -218,7 +218,7 @@
   - Provenance + SHA256 of every file in `evidence-samples/lone-wolf/`. Source URLs (digitalcorpora.s3). License notes. Summary of what the agent found vs SANS-published ground truth (if available).
   - Done when: `docs/EVIDENCE.md` lists all 12 files with hashes, provenance, and at least 5 cross-references to specific findings (`F-NNN`).
 
-- [ ] **4.1.4 ACCURACY.md (`docs/ACCURACY.md`)**
+- [x] **4.1.4 ACCURACY.md (`docs/ACCURACY.md`)**
   - Honest self-assessment per criterion 2. Table: confirmed / refuted / inconclusive counts. List 2–3 known misses. List any false positives caught by the validator. List any hallucinations the model proposed and the validator caught.
   - Done when: `docs/ACCURACY.md` has those sections populated from real DB data via `psql` queries shown inline.
 
