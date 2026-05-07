@@ -28,6 +28,7 @@ pub async fn run(
     spec: &ToolSpec,
     args: &Value,
     case_dir: &Path,
+    scratch_dir: &Path,
     seccomp_path: &Path,
 ) -> Result<RunResult> {
     let started = Instant::now();
@@ -38,12 +39,18 @@ pub async fn run(
         .display()
         .to_string();
 
+    std::fs::create_dir_all(scratch_dir)
+        .with_context(|| format!("cannot create scratch_dir: {}", scratch_dir.display()))?;
+    let scratch_dir_str = scratch_dir.canonicalize()
+        .with_context(|| format!("scratch_dir not accessible: {}", scratch_dir.display()))?
+        .display()
+        .to_string();
+
     cmd.arg("run")
        .arg("--rm")
        .arg("--read-only")
        .arg("--read-only-tmpfs")
        .arg("--tmpfs").arg("/tmp:rw,size=512m,mode=1777")
-       .arg("--tmpfs").arg("/scratch:rw,size=2g")
        .arg("--security-opt").arg("no-new-privileges")
        .arg("--security-opt").arg(format!("seccomp={}", seccomp_path.display()))
        .arg("--cap-drop").arg("ALL")
@@ -53,6 +60,7 @@ pub async fn run(
        .arg(format!("--pids-limit={}", spec.pids_limit))
        .arg("--cpus").arg("4")
        .arg("--mount").arg(format!("type=bind,src={case_dir_str},dst=/case,ro"))
+       .arg("--mount").arg(format!("type=bind,src={scratch_dir_str},dst=/scratch,rw"))
        .arg(format!("--network={}", spec.network));
 
     cmd.arg(&spec.image);

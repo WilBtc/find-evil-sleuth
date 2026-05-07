@@ -68,7 +68,10 @@ async fn main() -> Result<()> {
                 let root = env::var("SLEUTH_CASES_ROOT").unwrap_or_else(|_| "./cases".into());
                 PathBuf::from(root).join(&case)
             });
-            let receipt = exec(&pool, &case, &tool, parsed, validation, case_dir).await?;
+            let scratch_root = env::var("SLEUTH_SCRATCH_ROOT")
+                .unwrap_or_else(|_| "/var/sleuth/scratch".into());
+            let scratch_dir = PathBuf::from(scratch_root).join(&case);
+            let receipt = exec(&pool, &case, &tool, parsed, validation, case_dir, scratch_dir).await?;
             println!("{}", serde_json::to_string_pretty(&receipt)?);
         }
     }
@@ -82,6 +85,7 @@ async fn exec(
     args: Value,
     validation: bool,
     case_dir: PathBuf,
+    scratch_dir: PathBuf,
 ) -> Result<Value> {
     // Allowlist gate.
     let spec = allowlist::get(pool, tool_name).await?
@@ -101,7 +105,7 @@ async fn exec(
                 .join("broker/seccomp/sleuth.json")
         });
 
-    let result = podman::run(&spec, &args, &case_dir, &seccomp).await?;
+    let result = podman::run(&spec, &args, &case_dir, &scratch_dir, &seccomp).await?;
 
     let blob_root = stream::default_root();
     let writer = stream::BlobWriter::new(&blob_root);
