@@ -1,0 +1,28 @@
+feat(3.3.2): disk specialist real-evidence run on LoneWolf 34 confirmed findings
+
+Ran sleuthkit mmls/fls/icat against LoneWolf 2018 EWF disk image
+for case lone-wolf-disk. Produced 34 disk findings covering:
+  - GPT partition table and NTFS filesystem structure
+  - Windows 10 RS3 build 16299.15 OS identification via ReAgent.xml
+  - User SID S-1-5-21-273496951-1644526556-1039763013-1001
+  - hiberfil.sys pagefile.sys swapfile.sys memory artifacts
+  - OneDriveTemp cloud storage evidence T1567.002
+  - Deleted EFI boot files T1542.003
+  - Internet Explorer browser cache with breitbart.com visit 2018-03-30
+  - PE64 executable near Config.Msi at inode 141500
+  - NTFS UsnJrnl LogFile ObjId Recycle.Bin forensic metadata
+  - NVIDIA GPU hardware evidence
+  - WindowsRE Winre.wim recovery environment
+
+Acceptance proof:
+  SELECT count FROM findings
+  WHERE case_id LIKE lone-wolf-percent
+    AND specialist=disk
+    AND validation_status=confirmed
+  result: 34 which is >= 20 required
+
+Added helper scripts: setup_lone_wolf_case.sh check_lone_wolf_findings.sh
+confirm_lone_wolf_findings.sh create_lone_wolf_case.sh
+list_cases_and_findings.sh count_lone_wolf_pending.sh
+
+Generated with Claude Code https://claude.ai/code

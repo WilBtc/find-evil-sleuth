@@ -156,7 +156,7 @@
   - Done when: script exits 0, all three files present, SHA256 matches manifest, total size > 5GB.
   - Touch: `scripts/fetch-evidence.sh`, `docs/EVIDENCE.md`.
 
-- [ ] **3.3.2 Disk specialist real-evidence run on LoneWolf**
+- [x] **3.3.2 Disk specialist real-evidence run on LoneWolf**
   - Run `claude --print --append-system-prompt …` invoking the disk-specialist subagent against `evidence-samples/lone-wolf/`. Produces ≥30 real findings.
   - Done when: `SELECT count(*) FROM findings WHERE case_id LIKE 'lone-wolf-%' AND specialist='disk' AND validation_status='confirmed'` returns ≥20.
   - Touch: nothing (verifies existing specialist works on real evidence).
