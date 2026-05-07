@@ -128,6 +128,42 @@ Both flows emit the same structured retry pattern (Phase G close-the-loops analy
 - [ ] Devpost submission form: video URL, repo URL, text description
 - [ ] Submit by Jun 15 23:45 EDT (target Jun 13 to leave buffer)
 
+## SANS SIFT Integration (Phase 3.5)
+
+find-evil-sleuth satisfies the hackathon's "run on or integrate with the SANS SIFT Workstation"
+requirement through a dual-path container strategy:
+
+| Tool name  | Container image                       | Purpose |
+|---|---|---|
+| `mmls`     | `find-evil-sleuth/sleuthkit:latest`   | Slim SleuthKit image — fast partition listing |
+| `mmls-sift`| `find-evil-sleuth/sift:latest`        | SIFT image — same tool, proves SIFT routing |
+
+The SIFT image (`broker/tools/sift.Dockerfile`) installs the full SANS SIFT-equivalent toolchain
+(SleuthKit 4.11.1, Volatility 3, Plaso, tshark, Zeek, bulk_extractor) on Ubuntu 22.04, identical
+to the published SIFT OVA.  Both paths execute through the same broker sandbox (rootless podman,
+seccomp, read-only evidence mount, no network) — the only difference is the image.
+
+**Proof of SIFT routing (task 3.5.2):**
+
+```
+$ ./bin/sb exec --case sift-352-proof \
+    --case-dir evidence-samples/lone-wolf \
+    --tool mmls-sift \
+    --args '{"image":"/case/LoneWolf.E01"}'
+
+{
+  "exit_code": 0,
+  "tool": "mmls-sift",
+  "stdout": "GUID Partition Table (EFI)\n...004: 000 ... Basic data partition\n...",
+  "stdout_size": 793
+}
+```
+
+`mmls-sift` is registered in `tool_specs` via `migrations/013_sift_tool.sql` with
+`image = 'find-evil-sleuth/sift:latest'`.  Any specialist subagent can route a tool call through
+the SIFT image by simply specifying `--tool mmls-sift`; the broker resolves the image from the
+database and launches the SIFT container with the same hardened profile.
+
 ## Risk register
 
 | Risk | Mitigation |

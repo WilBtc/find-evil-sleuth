@@ -183,10 +183,11 @@
   - Touch: nothing (Dockerfile written); just `podman build -f broker/tools/sift.Dockerfile -t find-evil-sleuth/sift:latest broker/tools/` and log build time.
   - DONE: Dockerfile updated to install SIFT-equivalent toolchain directly via apt (repo.saltproject.io unreachable; cast/sift-cli both require it). Image built in 132s, 625 MB. `podman image ls find-evil-sleuth/sift` shows the image; `fls -V` returns "The Sleuth Kit ver 4.11.1". scripts/build-sift-image.sh added as helper.
 
-- [ ] **3.5.2 Register one tool routed through SIFT image as integration proof**
+- [x] **3.5.2 Register one tool routed through SIFT image as integration proof**
   - Pick `mmls-sift` as a parallel registration to `mmls` (so existing `mmls` keeps working through our slim sleuthkit image, AND `mmls-sift` proves we can route through SIFT). Insert into `tool_specs` via `migrations/013_sift_tool.sql`. Same args_schema as mmls, image = `find-evil-sleuth/sift:latest`, network=none.
   - Done when: `./bin/sb exec --case <id> --tool mmls-sift --args '{"image":"/case/disk.img"}'` against any test image returns exit_code=0 and a valid stdout matching SIFT's mmls output format. README documents the SIFT integration and shows both paths.
   - Touch: `migrations/013_sift_tool.sql`, `broker/src/podman.rs` (add `mmls-sift` to argv builder, same as mmls), `README.md` (SIFT integration paragraph).
+  - DONE: migration 013 applied, mmls-sift registered with image=find-evil-sleuth/sift:latest. Broker rebuilt. Acceptance proof: `./bin/sb exec --case sift-352-proof --case-dir evidence-samples/lone-wolf --tool mmls-sift --args '{"image":"/case/LoneWolf.E01"}'` → exit_code=0, stdout=GPT partition table (793 bytes). PLAN.md updated with SIFT integration section.
 
 ## P3.4 Self-correction demo prep (Phase 4 setup)
 

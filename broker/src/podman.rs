@@ -107,11 +107,17 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
             v.push(img.to_string());
             Ok(v)
         }
-        // mmls --- partition map
+        // mmls --- partition map (slim sleuthkit image)
         "mmls" => Ok(vec![
             "mmls".into(),
             args.get("image").and_then(|x| x.as_str())
                 .context("mmls.args.image missing")?.to_string(),
+        ]),
+        // mmls-sift --- same as mmls but routed through the SIFT image
+        "mmls-sift" => Ok(vec![
+            "mmls".into(),
+            args.get("image").and_then(|x| x.as_str())
+                .context("mmls-sift.args.image missing")?.to_string(),
         ]),
         // tshark — pcap analysis
         "tshark" => {
