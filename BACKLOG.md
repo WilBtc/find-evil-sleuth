@@ -316,3 +316,15 @@
 - [x] **5.3.2 README + DEMO_SCRIPT update with SaaS tease**
   - README: 30-second SaaS section with one screenshot, link to `./scripts/saas.sh up`. DEMO_SCRIPT: insert a 30-second "and here's the persistent inspector" beat at 4:30, before the wrap. Total demo stays ≤5 min.
   - Done when: README + DEMO_SCRIPT updated, screenshots in `docs/saas-screenshots/`.
+
+## P5.4 Full SIFT image (server-side, not built — downloaded)
+
+- [ ] **5.4.1 Pull full SANS SIFT distribution to dev-server, run in podman**
+  - The current `find-evil-sleuth/sift:latest` is a *self-built* SIFT (Ubuntu 22.04 + sift-cli `--mode=server`). A fuller proof of integration is to pull the SANS-published SIFT distribution itself and run that as the container source.
+  - Investigate options in this order, pick the first that works:
+    1. **SANS OVA → rootfs extract:** download the SIFT Workstation OVA (https://www.sans.org/tools/sift-workstation/), extract the embedded VMDK, mount-loop or `qemu-nbd`, tar the rootfs, `podman import` to `find-evil-sleuth/sift-full:latest`. Tag versioned (e.g. `sift-full:2024.x` based on what SANS publishes).
+    2. **Community SIFT Docker:** check `digitalsleuth/*` and `forensicanalysis/*` orgs on Docker Hub for an actively maintained SIFT-bundle image. If found and ≤2 years old, pull and retag as `find-evil-sleuth/sift-full:latest`.
+    3. **`sift-cli install --mode=desktop`** inside a fresh Ubuntu 22.04 container — produces a fuller install than `--mode=server` (the GUI tools won't run, but the CLI tooling is identical to the OVA). Bigger image (~12 GB) but verifiable.
+  - Download to `/var/sleuth/sift-cache/` (gitignored, ≥10 GB free required). Don't commit the archive. Document SHA256 in `evidence-samples/sift/MANIFEST`.
+  - Done when: `podman image ls find-evil-sleuth/sift-full` shows the image; `podman run --rm find-evil-sleuth/sift-full bash -c 'fls -V; vol -V; log2timeline.py --version'` returns three version lines; image size >5 GB (proves real SIFT, not slim).
+  - Touch: `broker/tools/sift-full.Dockerfile` (or build script if path 1), `scripts/fetch-sift.sh`, `migrations/015_sift_full_tool.sql` (register `mmls-sift-full` parallel to existing `mmls-sift`).
