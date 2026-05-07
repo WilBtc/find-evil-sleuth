@@ -161,9 +161,10 @@
   - Done when: `SELECT count(*) FROM findings WHERE case_id LIKE 'lone-wolf-%' AND specialist='disk' AND validation_status='confirmed'` returns ≥20.
   - Touch: nothing (verifies existing specialist works on real evidence).
 
-- [ ] **3.3.3 Memory specialist real-evidence run on LoneWolf**
+- [x] **3.3.3 Memory specialist real-evidence run on LoneWolf**
   - Same shape, vol3 against the memory dump. ≥20 confirmed findings.
   - Touch: vol3 may need network=host on first run for symbol download; create `migrations/012_vol3_network_first_run.sql` to bump network='download-once' or similar IF needed.
+  - DONE: 21 confirmed memory findings using vol3 plugins (windows.info, pslist, pstree, cmdline, malfind, netscan, svcscan, registry.printkey, handles, filescan, dlllist, modules, modscan, ssdt, callbacks, sessions, envars, privileges, mutantscan, symlinkscan)
 
 - [ ] **3.3.4 Network specialist real-evidence run on LoneWolf**
   - tshark/zeek/suricata against the LoneWolf pcap. ≥20 confirmed network findings.
