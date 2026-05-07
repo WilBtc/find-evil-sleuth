@@ -196,7 +196,7 @@
   - Done when: running the script then executing investigate.sh produces both self-corrections visible in `self_corrections` table; restore brings evidence back to clean state.
   - DONE: scripts/inject-corruption.sh + evidence-samples/lone-wolf/manifest.json created. Inject sets memory.os_family_hint="linux" and truncates pcap -4096 bytes; idempotent on re-run; --restore returns both files to clean state (verified: pcap 134359290→134355194→134359290 bytes, manifest windows→linux→windows).
 
-- [ ] **3.4.2 Three consecutive clean investigate.sh runs against corrupted LoneWolf**
+- [x] **3.4.2 Three consecutive clean investigate.sh runs against corrupted LoneWolf**
   - Each run completes, both self-corrections fire and recover, narrator marks affected findings `confidence=partial`. Build any retry-prompt tweaks needed for reliability.
   - Done when: three consecutive runs all pass; obs event timeline for each shows the same two self-correction events at predictable points.
 
