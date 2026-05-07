@@ -222,7 +222,7 @@
   - Honest self-assessment per criterion 2. Table: confirmed / refuted / inconclusive counts. List 2–3 known misses. List any false positives caught by the validator. List any hallucinations the model proposed and the validator caught.
   - Done when: `docs/ACCURACY.md` has those sections populated from real DB data via `psql` queries shown inline.
 
-- [ ] **4.1.5 Execution log export (`submission/execution-log.ndjson`)**
+- [x] **4.1.5 Execution log export (`submission/execution-log.ndjson`)**
   - `scripts/export-execution-log.sh` dumps obs events + tool_calls + findings + validation_runs + self_corrections to NDJSON sorted by timestamp. One file judges can grep.
   - Done when: script runs end-to-end, `wc -l submission/execution-log.ndjson` returns >500 (real data from a LoneWolf run), each line is valid JSON.
 
