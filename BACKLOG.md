@@ -250,6 +250,6 @@
   - Fill: project name, tagline, description (3 paragraphs), video URL, code repo URL, "built with" tech list, "try it out" link.
   - Done when: every Devpost field has draft content in this file.
 
-- [ ] **4.3.3 Final clone-from-clean smoke test**
+- [x] **4.3.3 Final clone-from-clean smoke test**
   - On a fresh ubuntu-22.04 host (or fresh vm), follow README quickstart end-to-end. Time from `git clone` to a working `cite F-001` must be <60 min.
   - Done when: smoke test passes, time recorded in README.

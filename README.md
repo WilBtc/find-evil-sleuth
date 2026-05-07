@@ -30,6 +30,8 @@ docker compose -f docker/compose.yaml up -d
 
 `investigate.sh` drives the complete ADW pipeline: triage classifies evidence, three specialists run in parallel, the validator re-executes every claim, the narrator emits `report.md` inside your case directory. Estimated wall time on an 8-core/32 GB VM: 20–40 minutes for the full LoneWolf dataset.
 
+**Smoke test (2026-05-07):** clone-to-`cite F-001` verified in **3 s** on insa-dev-server (substrate already running). Run `./scripts/smoke-test.sh --skip-compose` to reproduce. Full quickstart including `docker compose up` cold start is <5 min; the 31 GB evidence download is the only step that takes longer.
+
 ## Architecture
 
 ![System Architecture](docs/architecture.svg)
