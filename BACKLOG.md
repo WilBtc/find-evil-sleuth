@@ -214,7 +214,7 @@
   - Sections in this order: tagline, what-it-is (3 paragraphs), one-command quickstart (clone → docker compose up → fetch evidence → investigate.sh → cite F-001), architecture diagram embed, judging-criteria→design table, plans/ pointer, license, citations.
   - Done when: a fresh-VM `README.md` walkthrough completes from `git clone` to a working `cite F-NNN` invocation in <60 min.
 
-- [ ] **4.1.3 EVIDENCE.md (`docs/EVIDENCE.md`)**
+- [x] **4.1.3 EVIDENCE.md (`docs/EVIDENCE.md`)**
   - Provenance + SHA256 of every file in `evidence-samples/lone-wolf/`. Source URLs (digitalcorpora.s3). License notes. Summary of what the agent found vs SANS-published ground truth (if available).
   - Done when: `docs/EVIDENCE.md` lists all 12 files with hashes, provenance, and at least 5 cross-references to specific findings (`F-NNN`).
 
