@@ -16,14 +16,11 @@ pub async fn record(
 ) -> Result<String> {
     let mut tx = pool.begin().await?;
 
-    // Globally monotonic F-NNN — finding_id is a global primary key.
-    // Parse current maximum numeric suffix and add 1.
-    let next_n: (i64,) = sqlx::query_as(
-        r#"SELECT COALESCE(MAX(NULLIF(regexp_replace(finding_id,'\D','','g'),'')::bigint),0) + 1
-             FROM findings"#,
-    )
-    .fetch_one(&mut *tx)
-    .await?;
+    // Globally monotonic F-NNN — use a SEQUENCE so concurrent specialists
+    // never collide on the same id (MAX+1 is not safe under concurrency).
+    let next_n: (i64,) = sqlx::query_as("SELECT nextval('finding_seq')")
+        .fetch_one(&mut *tx)
+        .await?;
     let finding_id = format!("F-{:03}", next_n.0);
 
     let artifact_bytes: Option<Vec<u8>> = match artifact_hash_hex {
