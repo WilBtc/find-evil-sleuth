@@ -282,7 +282,7 @@
   - Done when: navigating to `/` lists every row in `cases` with live counts; click a row → drills into case detail.
   - Touch: `saas/src/routes/cases.rs`, `saas/templates/cases_list.html`.
 
-- [ ] **5.2.2 Page: Case detail (`/case/:id`) — timeline + self-corrections**
+- [x] **5.2.2 Page: Case detail (`/case/:id`) — timeline + self-corrections**
   - Vertically-stacked timeline of tool_calls (color-coded by exit_code), with self_corrections rendered as inline highlights ("vol3 failed → derive_profile → retry succeeded"). HTMX SSE stream from `/case/:id/events` (postgres LISTEN/NOTIFY on tool_calls + self_corrections + findings) for live updates.
   - Done when: opening the LoneWolf case shows ≥80 tool_call rows, the 18 self_corrections are visibly inlined at the right timestamps, and a fresh investigate.sh run streams new events into the page in real time.
   - Touch: `saas/src/routes/case.rs` (incl. SSE endpoint), `saas/templates/case_detail.html`, `saas/templates/_partials/tool_call_row.html`.

@@ -31,6 +31,8 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .route("/", get(routes::cases_list))
         .route("/cases/partial", get(routes::cases_list_partial))
+        .route("/case/{id}", get(routes::case_detail))
+        .route("/case/{id}/events", get(routes::case_events))
         .nest_service("/static", ServeDir::new(static_dir))
         .with_state(state);
 

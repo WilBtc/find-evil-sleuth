@@ -1,0 +1,211 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ case.case_id }} — find-evil-sleuth inspector{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/" class="text-gray-500 hover:text-green-400 transition-colors text-sm">&#x2190; Cases</a>
+    <span class="text-gray-700">/</span>
+    <h1 class="text-xl font-bold text-green-400 font-mono">{{ case.case_id }}</h1>
+    {% if case.status == "running" %}
+    <span class="inline-block px-2 py-0.5 rounded text-xs bg-yellow-900 text-yellow-300">running</span>
+    {% elif case.status == "done" %}
+    <span class="inline-block px-2 py-0.5 rounded text-xs bg-green-900 text-green-300">done</span>
+    {% elif case.status == "failed" %}
+    <span class="inline-block px-2 py-0.5 rounded text-xs bg-red-900 text-red-300">failed</span>
+    {% else %}
+    <span class="inline-block px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{{ case.status }}</span>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-3 gap-4 mb-6 text-sm">
+    <div class="bg-gray-900 rounded border border-gray-800 px-4 py-3">
+      <div class="text-gray-500 text-xs uppercase tracking-wider mb-1">Name</div>
+      <div class="text-gray-200">{{ case.name }}</div>
+    </div>
+    <div class="bg-gray-900 rounded border border-gray-800 px-4 py-3">
+      <div class="text-gray-500 text-xs uppercase tracking-wider mb-1">Started</div>
+      <div class="text-gray-200 font-mono">{{ case.started_at | date(format="%Y-%m-%d %H:%M:%S UTC") }}</div>
+    </div>
+    <div class="bg-gray-900 rounded border border-gray-800 px-4 py-3">
+      <div class="text-gray-500 text-xs uppercase tracking-wider mb-1">Timeline</div>
+      <div class="text-gray-200">
+        <span class="text-green-400 font-mono">{{ tool_call_count }}</span> tool calls &nbsp;
+        <span class="text-orange-400 font-mono">{{ correction_count }}</span> self-corrections
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded border border-gray-800 overflow-hidden" id="timeline-wrapper">
+    <div class="bg-gray-900 px-4 py-2 flex items-center justify-between border-b border-gray-800">
+      <span class="text-xs text-gray-400 uppercase tracking-wider">Tool Call Timeline</span>
+      <span class="text-xs text-gray-600" id="sse-status">connecting&hellip;</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-900 text-gray-500 text-xs uppercase tracking-wider">
+          <tr>
+            <th class="px-3 py-2 text-left w-24">Time</th>
+            <th class="px-3 py-2 text-left">Tool / Event</th>
+            <th class="px-3 py-2 text-center w-16">Exit</th>
+            <th class="px-3 py-2 text-right w-28">Duration</th>
+          </tr>
+        </thead>
+        <tbody id="timeline-tbody">
+          {% if timeline | length == 0 %}
+          <tr>
+            <td colspan="4" class="px-4 py-8 text-center text-gray-500">No tool calls recorded yet.</td>
+          </tr>
+          {% else %}
+          {% for entry in timeline %}
+
+            {% if entry.kind == "tool_call" %}
+            <tr class="border-b border-gray-800
+              {% if entry.exit_code is not none %}
+                {% if entry.exit_code == 0 %}hover:bg-gray-800
+                {% else %}bg-red-950 hover:bg-red-900
+                {% endif %}
+              {% else %}bg-yellow-950 hover:bg-yellow-900
+              {% endif %}
+              transition-colors"
+              id="tc-{{ entry.tool_call_id }}">
+              <td class="px-3 py-2 text-xs text-gray-500 whitespace-nowrap font-mono">
+                {{ entry.started_at | date(format="%H:%M:%S") }}
+              </td>
+              <td class="px-3 py-2">
+                <span class="font-mono {% if entry.is_validation %}text-blue-300{% else %}text-green-300{% endif %}">
+                  {{ entry.tool }}
+                </span>
+                {% if entry.is_validation %}
+                <span class="ml-1 text-xs text-blue-600">[validate]</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 text-center">
+                {% if entry.exit_code is not none %}
+                  {% if entry.exit_code == 0 %}
+                  <span class="inline-block w-5 h-5 rounded-full bg-green-800 text-green-200 text-xs text-center leading-5">0</span>
+                  {% else %}
+                  <span class="inline-block px-1.5 py-0.5 rounded bg-red-800 text-red-200 text-xs font-mono">{{ entry.exit_code }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse" title="running"></span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-2 text-xs text-gray-500 text-right font-mono">
+                {% if entry.duration_ms is not none %}{{ entry.duration_ms }}ms{% else %}&mdash;{% endif %}
+              </td>
+            </tr>
+
+            {% elif entry.kind == "correction" %}
+            <tr class="border-b border-orange-900 bg-orange-950" id="sc-{{ entry.attempt_id }}">
+              <td class="px-3 py-1.5 text-xs text-orange-600 whitespace-nowrap font-mono">
+                {{ entry.created_at | date(format="%H:%M:%S") }}
+              </td>
+              <td colspan="3" class="px-3 py-1.5 text-xs text-orange-300">
+                <span class="text-orange-500 mr-1">&#x21A9; self-correction:</span>
+                <span class="font-mono text-red-400">{{ entry.failed_tool }}</span>
+                exited <span class="font-mono text-red-300">{{ entry.failed_exit }}</span>
+                &rarr; <span class="text-yellow-400">{{ entry.retry_strategy }}</span>
+                &rarr; <span class="font-mono text-green-400">{{ entry.retry_tool }}</span>
+                {% if entry.succeeded is not none %}
+                  {% if entry.succeeded %}
+                  <span class="text-green-500 ml-2">&#x2713; retry succeeded</span>
+                  {% else %}
+                  <span class="text-red-500 ml-2">&#x2717; retry failed</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+            {% endif %}
+
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var statusEl = document.getElementById('sse-status');
+  var tbody = document.getElementById('timeline-tbody');
+  var caseId = {{ case.case_id | json_encode() }};
+
+  var es = new EventSource('/case/' + caseId + '/events');
+
+  es.addEventListener('open', function () {
+    if (statusEl) { statusEl.textContent = 'live'; statusEl.className = 'text-xs text-green-500'; }
+  });
+
+  es.addEventListener('error', function () {
+    if (statusEl) { statusEl.textContent = 'disconnected'; statusEl.className = 'text-xs text-red-500'; }
+  });
+
+  es.addEventListener('tool_calls', function (e) {
+    try {
+      var d = JSON.parse(e.data);
+      var existing = document.getElementById('tc-' + d.tool_call_id);
+      var html = buildToolCallRow(d);
+      if (existing) {
+        existing.outerHTML = html;
+      } else {
+        var placeholder = tbody.querySelector('td[colspan]');
+        if (placeholder) placeholder.closest('tr').remove();
+        tbody.insertAdjacentHTML('beforeend', html);
+      }
+    } catch (err) {}
+  });
+
+  es.addEventListener('self_corrections', function (e) {
+    try {
+      var d = JSON.parse(e.data);
+      tbody.insertAdjacentHTML('beforeend', buildCorrectionRow(d));
+    } catch (err) {}
+  });
+
+  function buildToolCallRow(d) {
+    var exit = (d.exit_code !== null && d.exit_code !== undefined) ? d.exit_code : null;
+    var rowBg = exit === null ? 'bg-yellow-950 hover:bg-yellow-900' : (exit === 0 ? 'hover:bg-gray-800' : 'bg-red-950 hover:bg-red-900');
+    var exitBadge;
+    if (exit === null) {
+      exitBadge = '<span class="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>';
+    } else if (exit === 0) {
+      exitBadge = '<span class="inline-block w-5 h-5 rounded-full bg-green-800 text-green-200 text-xs text-center leading-5">0</span>';
+    } else {
+      exitBadge = '<span class="inline-block px-1.5 py-0.5 rounded bg-red-800 text-red-200 text-xs font-mono">' + exit + '</span>';
+    }
+    var dur = (d.duration_ms !== null && d.duration_ms !== undefined) ? d.duration_ms + 'ms' : '&mdash;';
+    var t = d.started_at ? d.started_at.substring(11, 19) : '';
+    var toolClass = d.is_validation ? 'text-blue-300' : 'text-green-300';
+    var valBadge = d.is_validation ? '<span class="ml-1 text-xs text-blue-600">[validate]</span>' : '';
+    return '<tr class="border-b border-gray-800 ' + rowBg + ' transition-colors" id="tc-' + d.tool_call_id + '">'
+      + '<td class="px-3 py-2 text-xs text-gray-500 whitespace-nowrap font-mono">' + t + '</td>'
+      + '<td class="px-3 py-2"><span class="font-mono ' + toolClass + '">' + d.tool + '</span>' + valBadge + '</td>'
+      + '<td class="px-3 py-2 text-center">' + exitBadge + '</td>'
+      + '<td class="px-3 py-2 text-xs text-gray-500 text-right font-mono">' + dur + '</td>'
+      + '</tr>';
+  }
+
+  function buildCorrectionRow(d) {
+    var t = d.created_at ? d.created_at.substring(11, 19) : '';
+    var res = d.succeeded === true
+      ? '<span class="text-green-500 ml-2">&#x2713; retry succeeded</span>'
+      : (d.succeeded === false ? '<span class="text-red-500 ml-2">&#x2717; retry failed</span>' : '');
+    return '<tr class="border-b border-orange-900 bg-orange-950">'
+      + '<td class="px-3 py-1.5 text-xs text-orange-600 whitespace-nowrap font-mono">' + t + '</td>'
+      + '<td colspan="3" class="px-3 py-1.5 text-xs text-orange-300">'
+      + '<span class="text-orange-500 mr-1">&#x21A9; self-correction:</span>'
+      + '<span class="font-mono text-red-400">' + d.failed_tool + '</span>'
+      + ' exited <span class="font-mono text-red-300">' + d.failed_exit + '</span>'
+      + ' &rarr; <span class="text-yellow-400">' + d.retry_strategy + '</span>'
+      + ' &rarr; <span class="font-mono text-green-400">' + d.retry_tool + '</span>'
+      + res
+      + '</td></tr>';
+  }
+})();
+</script>
+{% endblock %}
