@@ -246,7 +246,7 @@
   - Push from Gitea to GitHub. Verify Apache-2.0 detected in About sidebar. Public.
   - Done when: GitHub repo exists, public, Apache-2.0 detected, has a mirror-status note in README.
 
-- [ ] **4.3.2 Devpost form (`submission/devpost-form.md`)**
+- [x] **4.3.2 Devpost form (`submission/devpost-form.md`)**
   - Fill: project name, tagline, description (3 paragraphs), video URL, code repo URL, "built with" tech list, "try it out" link.
   - Done when: every Devpost field has draft content in this file.
 

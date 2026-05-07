@@ -31,6 +31,7 @@ docker/postgres/pg_data/
 
 # Submission artifacts (built fresh per run)
 submission/
+!submission/devpost-form.md
 
 # Logs
 *.log
