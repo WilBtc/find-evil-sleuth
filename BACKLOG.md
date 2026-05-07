@@ -277,7 +277,7 @@
 
 ## P5.2 Pages (HTMX-driven)
 
-- [ ] **5.2.1 Page: Cases list (`/`)**
+- [x] **5.2.1 Page: Cases list (`/`)**
   - SSR table of cases: case_id, name, started_at, status, finding count, confirmed/pending/refuted breakdown chips. Links to /case/:id. HTMX polling every 5s for live count updates.
   - Done when: navigating to `/` lists every row in `cases` with live counts; click a row → drills into case detail.
   - Touch: `saas/src/routes/cases.rs`, `saas/templates/cases_list.html`.

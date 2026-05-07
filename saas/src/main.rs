@@ -29,7 +29,8 @@ async fn main() -> Result<()> {
     let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
 
     let app = Router::new()
-        .route("/", get(routes::index))
+        .route("/", get(routes::cases_list))
+        .route("/cases/partial", get(routes::cases_list_partial))
         .nest_service("/static", ServeDir::new(static_dir))
         .with_state(state);
 
