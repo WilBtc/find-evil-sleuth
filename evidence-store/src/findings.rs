@@ -81,12 +81,14 @@ pub async fn set_validation(
 
     let rows = sqlx::query(
         r#"UPDATE findings
-              SET validation_status      = $2,
-                  last_validated_at      = now()
-            WHERE finding_id             = $1"#,
+              SET validation_status         = $2,
+                  last_validated_at         = now(),
+                  validation_tool_call_id   = COALESCE($3, validation_tool_call_id)
+            WHERE finding_id               = $1"#,
     )
     .bind(finding_id)
     .bind(status)
+    .bind(validation_tool_call_id)
     .execute(&mut *tx)
     .await?
     .rows_affected();

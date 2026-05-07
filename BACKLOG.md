@@ -124,7 +124,7 @@
   - Done when: a regression test inserts a node with property value `bob's file.exe` and a query `MATCH (f:File {name:"bob's file.exe"})` returns it.
   - Touch: `migrations/003_age_helpers.sql` (rewrite functions; new migration `008_age_helpers_quoted.sql` that DROPs and re-creates).
 
-- [ ] **3.2.2 `findings.validation_tool_call_id` column for traceability**
+- [x] **3.2.2 `findings.validation_tool_call_id` column for traceability**
   - `set_validation` accepts a tool_call_id but only flips `tool_calls.is_validation=true`. Add `findings.validation_tool_call_id uuid` column; bind it. Narrator's `es cite` should surface the validating tool call alongside the original.
   - Done when: `./bin/es cite F-007` includes both `tool_call.id` (original) and `validation_tool_call.id` for any confirmed finding.
   - Touch: `migrations/009_findings_validation_tool_call.sql`, `evidence-store/src/{findings.rs,cite.rs}`.
