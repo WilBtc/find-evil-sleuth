@@ -175,6 +175,18 @@
   - Done when: report.md committed under a `case/lone-wolf-<date>` branch with execution log.
   - DONE: cases/lone-wolf-1778168581/report.md — 79 confirmed findings (34 disk + 21 memory + 24 network), all 79 [F-NNN] cited, citation check PASSED. Fixed investigate.sh PYTHONPATH and adws/__init__.py.
 
+## P3.5 SANS SIFT integration (literal rule compliance)
+
+- [ ] **3.5.1 Build SIFT podman image (broker/tools/sift.Dockerfile)**
+  - The hackathon rule says "run on or integrate with the SANS SIFT Workstation". Our production path uses per-tool sandboxes; this task builds a literal SIFT container for direct integration. Dockerfile already exists at `broker/tools/sift.Dockerfile` — uses `teamdfir/sift-cli v1.14.0-rc1` against Ubuntu 22.04, runs `sift install --mode=server` headless.
+  - Done when: `podman image ls find-evil-sleuth/sift` shows the image AND `podman run --rm find-evil-sleuth/sift bash -c 'fls -V'` returns the SIFT-bundled sleuthkit version.
+  - Touch: nothing (Dockerfile written); just `podman build -f broker/tools/sift.Dockerfile -t find-evil-sleuth/sift:latest broker/tools/` and log build time.
+
+- [ ] **3.5.2 Register one tool routed through SIFT image as integration proof**
+  - Pick `mmls-sift` as a parallel registration to `mmls` (so existing `mmls` keeps working through our slim sleuthkit image, AND `mmls-sift` proves we can route through SIFT). Insert into `tool_specs` via `migrations/013_sift_tool.sql`. Same args_schema as mmls, image = `find-evil-sleuth/sift:latest`, network=none.
+  - Done when: `./bin/sb exec --case <id> --tool mmls-sift --args '{"image":"/case/disk.img"}'` against any test image returns exit_code=0 and a valid stdout matching SIFT's mmls output format. README documents the SIFT integration and shows both paths.
+  - Touch: `migrations/013_sift_tool.sql`, `broker/src/podman.rs` (add `mmls-sift` to argv builder, same as mmls), `README.md` (SIFT integration paragraph).
+
 ## P3.4 Self-correction demo prep (Phase 4 setup)
 
 - [ ] **3.4.1 `scripts/inject-corruption.sh` for LoneWolf**
