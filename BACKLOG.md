@@ -151,7 +151,7 @@
 
 ## P3.3 Real-evidence runs (depends on P3.1 done)
 
-- [ ] **3.3.1 Fetch SANS LoneWolf evidence dataset**
+- [x] **3.3.1 Fetch SANS LoneWolf evidence dataset**
   - `scripts/fetch-evidence.sh lone-wolf` — downloads disk image (E01), memory dump (raw), pcap from SANS (or Magnet CTF). Writes to `evidence-samples/lone-wolf/` (gitignored). Records SHA256 in `evidence-samples/lone-wolf/MANIFEST`. Documents source in `docs/EVIDENCE.md`.
   - Done when: script exits 0, all three files present, SHA256 matches manifest, total size > 5GB.
   - Touch: `scripts/fetch-evidence.sh`, `docs/EVIDENCE.md`.
