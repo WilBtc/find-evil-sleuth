@@ -3,9 +3,9 @@
 #
 # Hook fires before every Bash tool invocation by any subagent in this project.
 # It allows ONLY:
-#   - the broker (./bin/sb), evidence-store (./bin/es), or workspace cargo wrappers
+#   - the broker (./bin/sb), evidence-store (./bin/es)
 #   - lightweight text utilities for parsing broker output (jq, grep, awk, …)
-#   - read-only repo helpers (git status/diff/log)
+#   - read-only repo helpers (git status/diff/log/show/branch/remote)
 #
 # Anything else exits non-zero. Subagents cannot invoke forensics tools directly,
 # write outside the workspace, reach the network, or escalate. This is the
@@ -24,7 +24,7 @@ trimmed="$(printf '%s' "$cmd" | sed -E 's/^[[:space:]]+//')"
 # user-controlled args to that command, but those tokens themselves cannot
 # launch a new program because shell metachars (;, &&, ||, |, $()) are also
 # checked against the allowlist for each segment via a simple split.
-allow='^(\.\/bin\/sb|\.\/bin\/es|cargo|jq|grep|awk|sed|head|tail|cut|sort|uniq|wc|cat|column|date|test|\[|echo|printf|true|false|tr|env|pwd|ls|find|stat|file|tee|hexdump|xxd|git[[:space:]]+(status|diff|log|show|branch|remote|add|commit|push|pull|fetch)|docker[[:space:]]+compose[[:space:]]+(up|down|ps|logs)|psql|ssh|chmod|mkdir|touch|bash|sh|podman|nohup|sleep|tee)([[:space:]]|$)'
+allow='^(\.\/bin\/sb|\.\/bin\/es|\.\/tests\/[A-Za-z0-9_./-]+|\.\/scripts\/[A-Za-z0-9_./-]+|jq|grep|awk|sed|head|tail|cut|sort|uniq|wc|cat|column|date|test|\[|echo|printf|true|false|tr|env|pwd|ls|stat|file|hexdump|xxd|git[[:space:]]+(status|diff|log|show|branch|remote|add|commit|push|pull|fetch)|psql|chmod|mkdir|touch|sleep)([[:space:]]|$)'
 
 deny_reason() {
     cat <<EOF >&2

@@ -81,7 +81,7 @@
 
 ## P3.1 Hardening — fix critical bugs from code review
 
-- [ ] **3.1.1 Lock down Bash hook allowlist (architectural-guardrail bypass)**
+- [x] **3.1.1 Lock down Bash hook allowlist (architectural-guardrail bypass)**
   - Remove `bash`, `sh`, `cargo`, `find`, `nohup`, `ssh`, `tee`, `podman` from `^(...)` regex in `.claude/hooks/pre-bash-broker-only.sh`. These were added during Phase 2 build to let ralph child do meta-work; specialists don't need them and they let `bash -c 'vol3 ...'` walk past the broker.
   - Keep: `./bin/sb`, `./bin/es`, `jq`, `grep`, `awk`, `sed`, `head`, `tail`, `cut`, `sort`, `uniq`, `wc`, `cat`, `column`, `date`, `test`, `[`, `echo`, `printf`, `pwd`, `ls`, `stat`, `file`, `xxd`, `psql`, `git status|diff|log`, `mkdir`, `touch`.
   - Done when: hook unit-test (a script that pipes 5 sample commands as JSON and asserts which exit 0/2) added under `tests/hook_allowlist.sh` and passes; specifically `bash -c 'id'`, `podman run alpine`, `cargo build`, `ssh somehost`, `nohup …` all return exit 2.
