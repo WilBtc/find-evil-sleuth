@@ -139,7 +139,7 @@
   - Done when: hook fires only for narrator stops; emits exit 2 with stderr reason if cite-coverage fails; emits exit 0 otherwise.
   - Touch: `.claude/hooks/stop-cite-check.sh`.
 
-- [ ] **3.2.5 Narrator uses read-only PG role**
+- [x] **3.2.5 Narrator uses read-only PG role**
   - Create `sleuth_ro` role with `SELECT` on cases, findings, tool_calls, validation_history, artifacts; no INSERT/UPDATE/DELETE. Narrator skill connects with `${PG_RO_URL}` instead of the read-write URL. Removes the "narrator could write to DB by accident" risk.
   - Done when: narrator subagent runs successfully on the phase15 case AND `INSERT INTO findings VALUES ...` from the narrator's connection raises permission denied.
   - Touch: `migrations/010_sleuth_ro_role.sql`, `.claude/skills/find-evil/ir-narrator/SKILL.md`, `.env.example`.

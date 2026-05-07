@@ -129,7 +129,7 @@ ORDER BY f.specialist, f.finding_id;
 ```
 
 ```bash
-psql postgresql://sleuth:changeme-dev-only@127.0.0.1:5532/sleuth \
+psql "${PG_RO_URL:-postgresql://sleuth_ro_user:changeme-ro-dev-only@127.0.0.1:5532/sleuth}" \
   -f /tmp/narrator_<CASE_ID>.sql 2>&1
 ```
 
