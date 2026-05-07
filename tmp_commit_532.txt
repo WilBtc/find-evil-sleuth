@@ -1,0 +1,12 @@
+feat(5.3.2): README + DEMO_SCRIPT update with SaaS tease
+
+- README: new "Persistent Inspector (SaaS) — 30-second start" section
+  with ./scripts/saas.sh up quickstart, route table, and link to
+  docs/saas-screenshots/
+- DEMO_SCRIPT: added 20-second "persistent inspector" beat at 4:30
+  before the wrap; updated timestamp verification table; total 5:00
+- docs/saas-screenshots/README.md: screenshot index with filenames and
+  regeneration instructions
+
+Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>

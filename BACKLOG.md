@@ -313,6 +313,6 @@
   - Ensure the `lone-wolf-1778168581` case is the default landing case. A small cron (every 60s) re-runs the validator on a small sample to keep the timeline visibly active for judges who land on the page mid-investigation. Toggle via `~/.sleuth-saas-theatre`.
   - Done when: opening `/case/lone-wolf-1778168581` mid-day shows a tool_call dated <2 min ago.
 
-- [ ] **5.3.2 README + DEMO_SCRIPT update with SaaS tease**
+- [x] **5.3.2 README + DEMO_SCRIPT update with SaaS tease**
   - README: 30-second SaaS section with one screenshot, link to `./scripts/saas.sh up`. DEMO_SCRIPT: insert a 30-second "and here's the persistent inspector" beat at 4:30, before the wrap. Total demo stays ≤5 min.
   - Done when: README + DEMO_SCRIPT updated, screenshots in `docs/saas-screenshots/`.

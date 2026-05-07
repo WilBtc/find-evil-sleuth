@@ -36,7 +36,8 @@ Three terminal panes pre-arranged:
 | 2:30 | 0:45 | **Self-correction #1.** Pane C shows in order: `Sleuth.tool.executed plugin=windows.pslist exit=1` → `Sleuth.self_correct.attempt strategy=derive_profile` → `Sleuth.tool.executed plugin=windows.info exit=0` → `Sleuth.tool.executed plugin=windows.pslist exit=0` | *"Volatility crashed — wrong OS family hint in the manifest. The agent detected exit 1, identified the error signature 'Unsatisfied requirement / translation layer', ran windows.info to derive the correct profile, patched its own case plan, and retried. The whole correction loop is recorded in the DB. Self-corrections are first-class audit events."* |
 | 3:15 | 0:45 | **Self-correction #2.** Pane C shows: `Sleuth.tool.executed tool=tshark exit=2 stderr="cut short in the middle of a packet"` → `Sleuth.self_correct.attempt strategy=editcap_recover` → `Sleuth.tool.executed tool=editcap exit=0` → `Sleuth.tool.executed tool=tshark exit=0` | *"Pcap is truncated — tshark exits 2 with 'cut short in the middle of a packet'. Agent catches it, runs editcap to recover what's there, completes the analysis, and marks those findings confidence=partial. Confirmed findings are distinguished from inferences at the row level."* |
 | 4:00 | 0:30 | Pane A: `./bin/es cite F-042` — JSON output showing tool, args hash, stdout hash, MITRE ATT&CK tag, validation_status, Merkle root. | *"Every claim in the report is traceable in one command — tool name, exact arguments, stdout hash, offset into the artifact, MITRE tag, validation history, and the Merkle root of the tool-call chain. This is the audit trail criterion."* |
-| 4:30 | 0:25 | Pane A: `cat report.md` scrolling — [F-NNN] citations visible throughout. | *"The IR narrator is read-only. It queries confirmed findings only and must cite every factual claim. A second Opus-class judge checks citation correctness before the report is accepted."* |
+| 4:30 | 0:20 | Browser: `./scripts/saas.sh up` already running — switch to browser at http://127.0.0.1:8932/. Click into the LoneWolf case, then `/findings`, then drill into one finding. | *"And here's the persistent inspector — one command, no notebook required. Every finding is one click away: tool call, exact arguments, stdout hash, Merkle root. The audit chain page shows the tamper-free badge in green. Judges can browse any case, any finding, live."* |
+| 4:50 | 0:05 | Pane A: `cat report.md` — first paragraph with [F-NNN] citations visible. | *"The narrator's report — every factual claim cited."* |
 | 4:55 | 0:05 | Pane A: `psql sleuth -c "SELECT count(*), validation_status FROM findings GROUP BY 2"` — table printed. | *"Audit substrate is just Postgres — judges can run live SQL right now. Thank you."* |
 
 **Total: 5:00**
@@ -54,7 +55,8 @@ Three terminal panes pre-arranged:
 | Self-correction #1 (vol3) | 2:30 | 3:15 | 0:45 |
 | Self-correction #2 (pcap) | 3:15 | 4:00 | 0:45 |
 | `es cite` audit chain | 4:00 | 4:30 | 0:30 |
-| `cat report.md` | 4:30 | 4:55 | 0:25 |
+| Persistent inspector (SaaS) | 4:30 | 4:50 | 0:20 |
+| `cat report.md` | 4:50 | 4:55 | 0:05 |
 | Closing SQL | 4:55 | 5:00 | 0:05 |
 | **Total** | | | **5:00** |
 

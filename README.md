@@ -32,6 +32,29 @@ docker compose -f docker/compose.yaml up -d
 
 **Smoke test (2026-05-07):** clone-to-`cite F-001` verified in **3 s** on insa-dev-server (substrate already running). Run `./scripts/smoke-test.sh --skip-compose` to reproduce. Full quickstart including `docker compose up` cold start is <5 min; the 31 GB evidence download is the only step that takes longer.
 
+## Persistent Inspector (SaaS) — 30-second start
+
+`bin/sleuth-saas` is a compiled Rust web app that gives judges and reviewers a persistent browser UI into any completed investigation — no Python, no notebook, no terminal required.
+
+```bash
+./scripts/saas.sh up   # starts postgres if needed, launches inspector on :8932
+```
+
+Open **http://127.0.0.1:8932/** and navigate to any case in under a second.
+
+| Screen | URL | What you see |
+|--------|-----|--------------|
+| Case list | `/` | All cases with evidence counts and last-activity badge |
+| Findings table | `/case/<id>/findings` | Every finding — confidence, validation_status, MITRE tag, one-click drill-down |
+| Finding detail | `/finding/<fid>` | Tool call, exact args, stdout hash, artifact content, Merkle root |
+| Audit chain | `/case/<id>/audit` | Merkle-chained `tool_calls` with live verify badge (green = tamper-free) |
+| Attack graph | `/case/<id>/graph` | Apache AGE nodes rendered with vis-network — lateral movement at a glance |
+| SQL console | `/console` | Read-only `psql` session scoped to `sleuth_ro` — judges can run live `SELECT` queries |
+
+Screenshots: [`docs/saas-screenshots/`](docs/saas-screenshots/)
+
+To stop: `./scripts/saas.sh down`
+
 ## Architecture
 
 ![System Architecture](docs/architecture.svg)
