@@ -78,3 +78,106 @@
 - [x] **2.3.3 pg_cron re-validation**
   - Job: every 30 min enqueue `pending` and `>1h-old` findings.
   - Done when: `SELECT * FROM cron.job` shows the row.
+
+## P3.1 Hardening — fix critical bugs from code review
+
+- [ ] **3.1.1 Lock down Bash hook allowlist (architectural-guardrail bypass)**
+  - Remove `bash`, `sh`, `cargo`, `find`, `nohup`, `ssh`, `tee`, `podman` from `^(...)` regex in `.claude/hooks/pre-bash-broker-only.sh`. These were added during Phase 2 build to let ralph child do meta-work; specialists don't need them and they let `bash -c 'vol3 ...'` walk past the broker.
+  - Keep: `./bin/sb`, `./bin/es`, `jq`, `grep`, `awk`, `sed`, `head`, `tail`, `cut`, `sort`, `uniq`, `wc`, `cat`, `column`, `date`, `test`, `[`, `echo`, `printf`, `pwd`, `ls`, `stat`, `file`, `xxd`, `psql`, `git status|diff|log`, `mkdir`, `touch`.
+  - Done when: hook unit-test (a script that pipes 5 sample commands as JSON and asserts which exit 0/2) added under `tests/hook_allowlist.sh` and passes; specifically `bash -c 'id'`, `podman run alpine`, `cargo build`, `ssh somehost`, `nohup …` all return exit 2.
+  - Touch: `.claude/hooks/pre-bash-broker-only.sh`, `tests/hook_allowlist.sh`.
+
+- [ ] **3.1.2 Add `stdout` and `stderr` aliases to broker JSON output**
+  - Specialists/validator/narrator parse `.stdout` and `.stderr`; broker emits `.stdout_preview` and `.stderr_tail`. Add the bare names as additional keys (same content as the previews) so existing skill bodies work, AND keep the `_preview`/`_tail` keys for backwards compat.
+  - Done when: `./bin/sb exec ... | jq -e '.stdout and .stderr and .stdout_preview and .stderr_tail'` returns true.
+  - Touch: `broker/src/main.rs` (the `serde_json::json!` block in `exec`).
+
+- [ ] **3.1.3 Add `/scratch-case` writable mount + change output_* schemas to `^/scratch/`**
+  - Tools that write (tsk_recover, bulk_extractor, editcap, log2timeline, psort, zeek) currently target `/case/...` but case dir is mounted ro. Add a second bind mount in `podman.rs::run` for a per-case writable dir (`/var/sleuth/scratch/<case>:/scratch:rw`) — keep `/case` ro to preserve evidence integrity.
+  - Update all `output_dir`, `output_file`, `output` schema patterns in `migrations/002_tool_specs_seed.sql` from `^/case/` to `^/scratch/`.
+  - Done when: `./bin/sb exec --case <id> --tool tsk_recover --args '{"image":"/case/disk.img","output_dir":"/scratch/recovered"}'` exits 0 and the recovered dir exists on host under `/var/sleuth/scratch/<id>/recovered/`.
+  - Touch: `broker/src/podman.rs`, `migrations/006_output_paths_scratch.sql` (a new migration that ALTERs the seed rows; do not edit 002 in place).
+
+- [ ] **3.1.4 Fix specialist paths from `/case/<CASE_ID>/file` to `/case/file`**
+  - Skills + agents for disk, memory, network all show example tool calls using `/case/<CASE_ID>/disk.img` etc. — but broker bind-mounts the case dir AS `/case`, so the correct path is `/case/disk.img` (no case_id segment). The network scaffold test uses the right path; everything else is wrong.
+  - Audit all six skill bodies + six agent files; replace `/case/<CASE_ID>/` and `/case/${CASE_ID}/` with `/case/`.
+  - Done when: `grep -rE '/case/<?CASE_ID' .claude/skills/find-evil .claude/agents/find-evil` returns nothing AND a smoke run of the disk specialist on the phase15 mini-case succeeds.
+  - Touch: 6 skill files + 6 agent files.
+
+- [ ] **3.1.5 Drop the ≥10 findings quota; replace with "one finding per substantive observation"**
+  - Skills currently say "produce ≥10 findings; if count<10, add more" which incentivizes fabrication. Network specialist explicitly records "no DNS traffic — confirmed clean" as findings. That undermines criterion 5 (audit trail).
+  - Rewrite the "Done when" / step-N guidance in each specialist skill to: "Record a finding for each substantive observation supported by tool output. Do not pad. Empty/clean tool output is logged in obs but does NOT become a finding row." Same for the scaffold tests' "padding" rows — delete them.
+  - Done when: scaffold tests still produce ≥3 findings per specialist (real ones), and grep for `confirmed clean|no evidence|no .* traffic.*confirmed` in skill bodies returns nothing.
+  - Touch: 6 skill bodies + `tests/network_forensics_scaffold.sh` (lines 138/148/158/168) + `tests/memory_forensics_scaffold.sh` similar.
+
+- [ ] **3.1.6 Replace destructive pg_cron re-validation with append-only `validation_history`**
+  - Current `005_pgcron_revalidation.sql` UPDATE-resets every confirmed finding back to `pending` every hour. That destroys the audit trail and makes the narrator's "WHERE validation_status='confirmed'" query empty mid-report.
+  - Drop that migration. Add `migrations/007_validation_history.sql` with: `validation_history(history_id bigserial PK, finding_id text REFERENCES findings, status text, validated_at timestamptz default now(), validation_tool_call_id uuid)`. Update `evidence-store/src/findings.rs::set_validation` to INSERT into history AND update the latest status on `findings`. Update narrator to query latest history row when present.
+  - pg_cron job rewritten to append a new row only when the latest history is >24h old AND status was previously `confirmed` (re-validation, not reset).
+  - Done when: existing 11 confirmed disk findings still show `validation_status='confirmed'` after manual `SELECT cron.run_job(...)` invocation; new history rows are appended.
+  - Touch: drop 005, add 007 migration, modify `evidence-store/src/findings.rs` `set_validation`.
+
+## P3.2 Hardening — high-priority but non-blocking
+
+- [ ] **3.2.1 AGE Cypher injection fix in `sp_graph_assert` / `sp_graph_edge`**
+  - Forensic strings (filenames `O'Reilly.docx`, registry paths, etc.) embedded in single-quoted Cypher will inject. Use `quote_literal()` for values; reject keys not matching `^[A-Za-z_][A-Za-z0-9_]*$`.
+  - Done when: a regression test inserts a node with property value `bob's file.exe` and a query `MATCH (f:File {name:"bob's file.exe"})` returns it.
+  - Touch: `migrations/003_age_helpers.sql` (rewrite functions; new migration `008_age_helpers_quoted.sql` that DROPs and re-creates).
+
+- [ ] **3.2.2 `findings.validation_tool_call_id` column for traceability**
+  - `set_validation` accepts a tool_call_id but only flips `tool_calls.is_validation=true`. Add `findings.validation_tool_call_id uuid` column; bind it. Narrator's `es cite` should surface the validating tool call alongside the original.
+  - Done when: `./bin/es cite F-007` includes both `tool_call.id` (original) and `validation_tool_call.id` for any confirmed finding.
+  - Touch: `migrations/009_findings_validation_tool_call.sql`, `evidence-store/src/{findings.rs,cite.rs}`.
+
+- [ ] **3.2.3 Self-correct loop bounded retry of 3 (currently 1)**
+  - `adws/self_correct.py::_attempt_loop` does ONE attempt; `investigate.py::state_self_correcting` calls it once. Restructure so up to 3 retries happen before bailing; each retry feeds prior failures into the next prompt.
+  - Done when: a deliberately-broken tool call (mis-stated arg) triggers exactly 3 retry attempts visible in `self_corrections` table when none succeeds; one retry when first succeeds.
+  - Touch: `adws/self_correct.py`, `adws/investigate.py`.
+
+- [ ] **3.2.4 Stop hook gates on agent identity (not transcript grep)**
+  - `stop-cite-check.sh` greps the entire transcript JSON for "report.md" — fires for any conversation that mentions it. Read `.subagent_type` from the input JSON; only run check when subagent_type == 'narrator'. Use exit 2 (blocking) per Stop hook contract, not exit 1.
+  - Done when: hook fires only for narrator stops; emits exit 2 with stderr reason if cite-coverage fails; emits exit 0 otherwise.
+  - Touch: `.claude/hooks/stop-cite-check.sh`.
+
+- [ ] **3.2.5 Narrator uses read-only PG role**
+  - Create `sleuth_ro` role with `SELECT` on cases, findings, tool_calls, validation_history, artifacts; no INSERT/UPDATE/DELETE. Narrator skill connects with `${PG_RO_URL}` instead of the read-write URL. Removes the "narrator could write to DB by accident" risk.
+  - Done when: narrator subagent runs successfully on the phase15 case AND `INSERT INTO findings VALUES ...` from the narrator's connection raises permission denied.
+  - Touch: `migrations/010_sleuth_ro_role.sql`, `.claude/skills/find-evil/ir-narrator/SKILL.md`, `.env.example`.
+
+- [ ] **3.2.6 Findings F-NNN allocation race fix (use a SEQUENCE)**
+  - Concurrent specialists race on `MAX(...)+1` and lose to PK conflict. Replace with `CREATE SEQUENCE finding_seq`; format as `'F-' || lpad(nextval('finding_seq')::text, 3, '0')` in `findings.rs::record`.
+  - Done when: 10 parallel `es record-finding` calls succeed without retry/conflict.
+  - Touch: `migrations/011_finding_seq.sql`, `evidence-store/src/findings.rs`.
+
+## P3.3 Real-evidence runs (depends on P3.1 done)
+
+- [ ] **3.3.1 Fetch SANS LoneWolf evidence dataset**
+  - `scripts/fetch-evidence.sh lone-wolf` — downloads disk image (E01), memory dump (raw), pcap from SANS (or Magnet CTF). Writes to `evidence-samples/lone-wolf/` (gitignored). Records SHA256 in `evidence-samples/lone-wolf/MANIFEST`. Documents source in `docs/EVIDENCE.md`.
+  - Done when: script exits 0, all three files present, SHA256 matches manifest, total size > 5GB.
+  - Touch: `scripts/fetch-evidence.sh`, `docs/EVIDENCE.md`.
+
+- [ ] **3.3.2 Disk specialist real-evidence run on LoneWolf**
+  - Run `claude --print --append-system-prompt …` invoking the disk-specialist subagent against `evidence-samples/lone-wolf/`. Produces ≥30 real findings.
+  - Done when: `SELECT count(*) FROM findings WHERE case_id LIKE 'lone-wolf-%' AND specialist='disk' AND validation_status='confirmed'` returns ≥20.
+  - Touch: nothing (verifies existing specialist works on real evidence).
+
+- [ ] **3.3.3 Memory specialist real-evidence run on LoneWolf**
+  - Same shape, vol3 against the memory dump. ≥20 confirmed findings.
+  - Touch: vol3 may need network=host on first run for symbol download; create `migrations/012_vol3_network_first_run.sql` to bump network='download-once' or similar IF needed.
+
+- [ ] **3.3.4 Network specialist real-evidence run on LoneWolf**
+  - tshark/zeek/suricata against the LoneWolf pcap. ≥20 confirmed network findings.
+
+- [ ] **3.3.5 Full investigate.sh end-to-end on LoneWolf, narrator emits report**
+  - `./scripts/investigate.sh evidence-samples/lone-wolf/` runs the full state machine. Produces `cases/lone-wolf-<ts>/report.md` with `[F-NNN]` cites for at least 60 confirmed findings.
+  - Done when: report.md committed under a `case/lone-wolf-<date>` branch with execution log.
+
+## P3.4 Self-correction demo prep (Phase 4 setup)
+
+- [ ] **3.4.1 `scripts/inject-corruption.sh` for LoneWolf**
+  - Per `plans/06-self-correction-demos.md`: truncate pcap by 4096 bytes; mis-state vol3 OS family hint in case manifest. Both deterministic, idempotent, reversible (script also has `--restore`).
+  - Done when: running the script then executing investigate.sh produces both self-corrections visible in `self_corrections` table; restore brings evidence back to clean state.
+
+- [ ] **3.4.2 Three consecutive clean investigate.sh runs against corrupted LoneWolf**
+  - Each run completes, both self-corrections fire and recover, narrator marks affected findings `confidence=partial`. Build any retry-prompt tweaks needed for reliability.
+  - Done when: three consecutive runs all pass; obs event timeline for each shows the same two self-correction events at predictable points.
