@@ -92,7 +92,7 @@
   - Done when: `./bin/sb exec ... | jq -e '.stdout and .stderr and .stdout_preview and .stderr_tail'` returns true.
   - Touch: `broker/src/main.rs` (the `serde_json::json!` block in `exec`).
 
-- [ ] **3.1.3 Add `/scratch-case` writable mount + change output_* schemas to `^/scratch/`**
+- [x] **3.1.3 Add `/scratch-case` writable mount + change output_* schemas to `^/scratch/`**
   - Tools that write (tsk_recover, bulk_extractor, editcap, log2timeline, psort, zeek) currently target `/case/...` but case dir is mounted ro. Add a second bind mount in `podman.rs::run` for a per-case writable dir (`/var/sleuth/scratch/<case>:/scratch:rw`) — keep `/case` ro to preserve evidence integrity.
   - Update all `output_dir`, `output_file`, `output` schema patterns in `migrations/002_tool_specs_seed.sql` from `^/case/` to `^/scratch/`.
   - Done when: `./bin/sb exec --case <id> --tool tsk_recover --args '{"image":"/case/disk.img","output_dir":"/scratch/recovered"}'` exits 0 and the recovered dir exists on host under `/var/sleuth/scratch/<id>/recovered/`.
