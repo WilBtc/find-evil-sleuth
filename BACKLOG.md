@@ -206,7 +206,7 @@
 
 ## P4.1 Documentation
 
-- [ ] **4.1.1 Architecture diagram (`docs/architecture.svg`)**
+- [x] **4.1.1 Architecture diagram (`docs/architecture.svg`)**
   - Use the excalidraw-diagram skill from `~/.claude/skills/`. Show: PreToolUse hook → broker → podman+seccomp → tools → evidence-store → Postgres (with extension callouts: pgvector, AGE, Timescale, pgaudit) → obs → ADW outloop. Annotate the architectural-guardrail boundary.
   - Done when: `docs/architecture.svg` exists, opens in any SVG viewer, includes a legend identifying the architectural-guardrail boundary, and is referenced from README.
 

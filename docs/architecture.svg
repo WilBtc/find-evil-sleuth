@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 820" width="1100" height="820" font-family="monospace, 'Courier New', sans-serif">
+
+  <!-- Background -->
+  <rect width="1100" height="820" fill="#0d1117" rx="8"/>
+
+  <!-- Title -->
+  <text x="550" y="36" text-anchor="middle" font-size="18" font-weight="bold" fill="#e6edf3">find-evil-sleuth · System Architecture</text>
+
+  <!-- ===== ARCHITECTURAL GUARDRAIL BOUNDARY ===== -->
+  <rect x="20" y="50" width="1060" height="540" fill="none" stroke="#f85149" stroke-width="2" stroke-dasharray="10,5" rx="10"/>
+  <text x="30" y="68" font-size="11" fill="#f85149" font-weight="bold">ARCHITECTURAL GUARDRAIL BOUNDARY</text>
+
+  <!-- ===== ADW DRIVER ===== -->
+  <rect x="320" y="75" width="460" height="80" fill="#161b22" stroke="#58a6ff" stroke-width="1.5" rx="6"/>
+  <text x="550" y="100" text-anchor="middle" font-size="13" font-weight="bold" fill="#58a6ff">ADW Driver · adws/investigate.py</text>
+  <text x="550" y="118" text-anchor="middle" font-size="11" fill="#8b949e">spawns: claude --model sonnet-4-6  (triage / specialists)</text>
+  <text x="550" y="134" text-anchor="middle" font-size="11" fill="#8b949e">judge:  claude --model opus-4-7    (validator + best-of-N)</text>
+
+  <!-- ADW → Hook arrow -->
+  <line x1="420" y1="155" x2="310" y2="220" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <!-- ADW → Evidence-store arrow -->
+  <line x1="680" y1="155" x2="790" y2="220" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+
+  <!-- ===== PRETOOLUSE HOOK ===== -->
+  <rect x="60" y="220" width="240" height="90" fill="#161b22" stroke="#f0883e" stroke-width="1.5" rx="6"/>
+  <text x="180" y="243" text-anchor="middle" font-size="12" font-weight="bold" fill="#f0883e">PreToolUse Hook</text>
+  <text x="180" y="262" text-anchor="middle" font-size="10" fill="#8b949e">allow: ./bin/sb  ./bin/es</text>
+  <text x="180" y="278" text-anchor="middle" font-size="10" fill="#8b949e">allow: awk grep jq (on output)</text>
+  <text x="180" y="294" text-anchor="middle" font-size="10" fill="#f85149">block: all other shell commands</text>
+
+  <!-- Hook → Broker arrow -->
+  <line x1="300" y1="265" x2="390" y2="265" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+
+  <!-- ===== SLEUTH BROKER ===== -->
+  <rect x="390" y="220" width="240" height="130" fill="#161b22" stroke="#3fb950" stroke-width="1.5" rx="6"/>
+  <text x="510" y="245" text-anchor="middle" font-size="12" font-weight="bold" fill="#3fb950">sleuth-broker (sb)</text>
+  <text x="510" y="263" text-anchor="middle" font-size="10" fill="#8b949e">Rust · ~800 LOC</text>
+  <text x="510" y="281" text-anchor="middle" font-size="10" fill="#8b949e">· pg_jsonschema arg validation</text>
+  <text x="510" y="297" text-anchor="middle" font-size="10" fill="#8b949e">· tool allowlist enforcement</text>
+  <text x="510" y="313" text-anchor="middle" font-size="10" fill="#8b949e">· cgroup limits · timeout</text>
+  <text x="510" y="329" text-anchor="middle" font-size="10" fill="#8b949e">· Merkle-chained tool_calls</text>
+
+  <!-- Broker → Podman arrow -->
+  <line x1="510" y1="350" x2="510" y2="410" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+
+  <!-- ===== PODMAN SANDBOX ===== -->
+  <rect x="360" y="410" width="300" height="110" fill="#161b22" stroke="#bc8cff" stroke-width="1.5" rx="6"/>
+  <text x="510" y="434" text-anchor="middle" font-size="12" font-weight="bold" fill="#bc8cff">podman + seccomp sandbox</text>
+  <text x="510" y="452" text-anchor="middle" font-size="10" fill="#8b949e">rootless · read-only evidence mount</text>
+  <text x="510" y="468" text-anchor="middle" font-size="10" fill="#8b949e">tmpfs scratch · no-network (default)</text>
+  <text x="510" y="484" text-anchor="middle" font-size="10" fill="#8b949e">SIFT image: vol/fls/tshark/zeek/vol3</text>
+  <text x="510" y="500" text-anchor="middle" font-size="10" fill="#8b949e">mmls · bulk_extractor · plaso</text>
+
+  <!-- ===== EVIDENCE-STORE ===== -->
+  <rect x="750" y="220" width="240" height="130" fill="#161b22" stroke="#3fb950" stroke-width="1.5" rx="6"/>
+  <text x="870" y="245" text-anchor="middle" font-size="12" font-weight="bold" fill="#3fb950">evidence-store (es)</text>
+  <text x="870" y="263" text-anchor="middle" font-size="10" fill="#8b949e">Rust · ~600 LOC</text>
+  <text x="870" y="281" text-anchor="middle" font-size="10" fill="#8b949e">· BLAKE3 content-addressed</text>
+  <text x="870" y="297" text-anchor="middle" font-size="10" fill="#8b949e">· Merkle chain artifacts</text>
+  <text x="870" y="313" text-anchor="middle" font-size="10" fill="#8b949e">· cite / search / graph</text>
+  <text x="870" y="329" text-anchor="middle" font-size="10" fill="#8b949e">· pg pool (sqlx)</text>
+
+  <!-- Podman → Evidence-store (results flow) -->
+  <line x1="660" y1="465" x2="740" y2="380" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-purple)"/>
+
+  <!-- Broker → Postgres -->
+  <line x1="630" y1="310" x2="510" y2="590" stroke="#3fb950" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-green)"/>
+  <!-- Evidence-store → Postgres -->
+  <line x1="870" y1="350" x2="700" y2="590" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+
+  <!-- ===== POSTGRES ===== -->
+  <rect x="370" y="590" width="360" height="130" fill="#161b22" stroke="#58a6ff" stroke-width="2" rx="6"/>
+  <text x="550" y="614" text-anchor="middle" font-size="13" font-weight="bold" fill="#58a6ff">Postgres 17</text>
+  <text x="430" y="636" font-size="10" fill="#8b949e">pgvector</text>
+  <text x="510" y="636" font-size="10" fill="#8b949e">apache_age</text>
+  <text x="610" y="636" font-size="10" fill="#8b949e">timescaledb</text>
+  <text x="430" y="654" font-size="10" fill="#8b949e">pg_cron</text>
+  <text x="500" y="654" font-size="10" fill="#8b949e">pg_partman</text>
+  <text x="590" y="654" font-size="10" fill="#8b949e">pg_trgm</text>
+  <text x="430" y="672" font-size="10" fill="#8b949e">pgcrypto</text>
+  <text x="500" y="672" font-size="10" fill="#8b949e">pgaudit</text>
+  <text x="570" y="672" font-size="10" fill="#8b949e">pg_jsonschema</text>
+  <text x="690" y="672" font-size="10" fill="#8b949e">pg_graphql</text>
+  <text x="430" y="692" font-size="10" fill="#8b949e">pg_stat_statements</text>
+
+  <!-- pg_cron annotation -->
+  <rect x="760" y="610" width="180" height="60" fill="#1c2128" stroke="#8b949e" stroke-width="1" rx="4"/>
+  <text x="850" y="628" text-anchor="middle" font-size="10" fill="#f0883e">pg_cron jobs:</text>
+  <text x="850" y="644" text-anchor="middle" font-size="9" fill="#8b949e">revalidate stale findings</text>
+  <text x="850" y="658" text-anchor="middle" font-size="9" fill="#8b949e">vacuum hypertables</text>
+  <text x="850" y="672" text-anchor="middle" font-size="9" fill="#8b949e">merkle root rollup hourly</text>
+  <line x1="760" y1="640" x2="730" y2="640" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow-gray)"/>
+
+  <!-- Postgres → obs arrow (PostToolUse) -->
+  <line x1="370" y1="640" x2="240" y2="620" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-gray)"/>
+
+  <!-- ===== AGENT-OBS ===== -->
+  <rect x="60" y="570" width="200" height="80" fill="#161b22" stroke="#f0883e" stroke-width="1.5" rx="6"/>
+  <text x="160" y="596" text-anchor="middle" font-size="12" font-weight="bold" fill="#f0883e">agent-obs :8910</text>
+  <text x="160" y="614" text-anchor="middle" font-size="10" fill="#8b949e">PostToolUse hook</text>
+  <text x="160" y="630" text-anchor="middle" font-size="10" fill="#8b949e">posts tool_call_id to obs</text>
+  <text x="160" y="646" text-anchor="middle" font-size="10" fill="#8b949e">real-time event timeline</text>
+
+  <!-- obs → ADW outloop arrow -->
+  <line x1="160" y1="570" x2="400" y2="155" stroke="#f0883e" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-orange)"/>
+  <text x="225" y="390" font-size="9" fill="#f0883e" transform="rotate(-65, 225, 390)">ADW outloop</text>
+
+  <!-- ===== LEGEND ===== -->
+  <rect x="20" y="620" width="30" height="3" fill="#f85149"/>
+  <rect x="20" y="620" width="30" height="3" fill="none" stroke="#f85149" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+  <!-- ===== LEGEND BOX ===== -->
+  <rect x="20" y="710" width="1060" height="100" fill="#161b22" stroke="#30363d" stroke-width="1" rx="6"/>
+  <text x="550" y="730" text-anchor="middle" font-size="12" font-weight="bold" fill="#e6edf3">Legend</text>
+
+  <!-- Legend items -->
+  <!-- Guardrail boundary -->
+  <line x1="40" y1="750" x2="90" y2="750" stroke="#f85149" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="100" y="754" font-size="10" fill="#e6edf3">Architectural Guardrail Boundary (red dashed) — enforced by PreToolUse hook + Rust broker; no direct shell access for agent</text>
+
+  <!-- Data flow -->
+  <line x1="40" y1="772" x2="90" y2="772" stroke="#3fb950" stroke-width="1.5"/>
+  <polygon points="90,768 98,772 90,776" fill="#3fb950"/>
+  <text x="100" y="776" font-size="10" fill="#e6edf3">Synchronous data flow (write path to Postgres via sqlx pool)</text>
+
+  <!-- Async flow -->
+  <line x1="40" y1="794" x2="90" y2="794" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <polygon points="90,790 98,794 90,798" fill="#8b949e"/>
+  <text x="100" y="798" font-size="10" fill="#e6edf3">Async / event flow (PostToolUse hook → obs; pg_cron background jobs; ADW outloop feedback)</text>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3fb950"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f0883e"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#bc8cff"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#8b949e"/>
+    </marker>
+  </defs>
+
+</svg>
