@@ -309,7 +309,7 @@
 
 ## P5.3 Polish + integration
 
-- [ ] **5.3.1 Demo-ready seed data + cron-driven live update theatre**
+- [x] **5.3.1 Demo-ready seed data + cron-driven live update theatre**
   - Ensure the `lone-wolf-1778168581` case is the default landing case. A small cron (every 60s) re-runs the validator on a small sample to keep the timeline visibly active for judges who land on the page mid-investigation. Toggle via `~/.sleuth-saas-theatre`.
   - Done when: opening `/case/lone-wolf-1778168581` mid-day shows a tool_call dated <2 min ago.
 

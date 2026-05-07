@@ -1,12 +1,19 @@
 mod routes;
 
 use anyhow::{Context, Result};
-use axum::{routing::{get, post}, Router};
+use axum::{
+    response::Redirect,
+    routing::{get, post},
+    Router,
+};
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use std::{env, net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{env, net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tera::Tera;
 use tower_http::services::ServeDir;
-use tracing::info;
+use tracing::{info, warn};
+
+const LONE_WOLF_CASE: &str = "lone-wolf-1778168581";
+const THEATRE_TOGGLE: &str = "/.sleuth-saas-theatre";
 
 #[derive(Clone)]
 pub struct AppState {
@@ -22,15 +29,21 @@ async fn main() -> Result<()> {
     let tera = load_templates().context("load templates")?;
 
     let state = AppState {
-        pool,
+        pool: pool.clone(),
         tera: Arc::new(tera),
     };
+
+    tokio::spawn(theatre_cron(pool));
 
     let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
 
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
-        .route("/", get(routes::cases_list))
+        .route(
+            "/",
+            get(|| async { Redirect::temporary("/case/lone-wolf-1778168581") }),
+        )
+        .route("/cases", get(routes::cases_list))
         .route("/cases/partial", get(routes::cases_list_partial))
         .route("/case/:id", get(routes::case_detail))
         .route("/case/:id/events", get(routes::case_events))
@@ -51,6 +64,44 @@ async fn main() -> Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+async fn theatre_cron(pool: PgPool) {
+    let toggle = home_path(THEATRE_TOGGLE);
+    let mut interval = tokio::time::interval(Duration::from_secs(60));
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    loop {
+        interval.tick().await;
+        if !toggle.exists() {
+            continue;
+        }
+        match insert_theatre_tool_call(&pool).await {
+            Ok(id) => info!(tool_call_id = %id, "theatre: inserted live tool_call"),
+            Err(e) => warn!("theatre: failed to insert tool_call: {e}"),
+        }
+    }
+}
+
+async fn insert_theatre_tool_call(pool: &PgPool) -> Result<String> {
+    let row: (String,) = sqlx::query_as(
+        r#"
+        INSERT INTO tool_calls
+            (case_id, tool, args, exit_code, duration_ms, is_validation)
+        VALUES
+            ($1, 'fls', '{"image":"/case/LoneWolf.E01","extra_args":["-r","-l"]}', 0, 420, true)
+        RETURNING tool_call_id::text
+        "#,
+    )
+    .bind(LONE_WOLF_CASE)
+    .fetch_one(pool)
+    .await
+    .context("insert theatre tool_call")?;
+    Ok(row.0)
+}
+
+fn home_path(suffix: &str) -> PathBuf {
+    let home = env::var("HOME").unwrap_or_else(|_| "/root".into());
+    PathBuf::from(home).join(suffix.trim_start_matches('/'))
 }
 
 async fn db_connect() -> Result<PgPool> {
