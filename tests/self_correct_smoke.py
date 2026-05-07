@@ -2,17 +2,11 @@
 """
 tests/self_correct_smoke.py
 
-Acceptance test for 2.3.2: a deliberately-failed tool call triggers exactly
-1 retry that succeeds.
+Acceptance tests for self_correct bounded retry loop.
 
-Strategy:
- - Insert a synthetic case into Postgres.
- - Mock the Claude subprocess and broker so the first call is a "failure"
-   and the retry produces SUCCESS.
- - Call SelfCorrector.attempt() and assert:
-     1. Exactly 1 self_corrections row with succeeded=True is written.
-     2. The Sleuth.self_correct.attempt obs event was emitted once.
-     3. The function returns True.
+3.2.3: up to MAX_RETRIES=3 retries:
+ - All fail  → exactly 3 self_corrections rows (all succeeded=False).
+ - First succeeds → exactly 1 self_corrections row (succeeded=True).
 """
 
 from __future__ import annotations
@@ -96,10 +90,15 @@ class TestBuildRetryPrompt(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class FakeConn:
-    """Minimal psycopg2-like connection backed by in-memory lists."""
+    """Minimal psycopg2-like connection backed by in-memory lists.
+
+    self_corrections rows are stored in self.sc_rows; SELECT queries
+    against self_corrections return the relevant subset so the retry
+    loop can track prior attempts.
+    """
 
     def __init__(self):
-        self.rows: list[dict] = []
+        self.sc_rows: list[dict] = []
 
     def cursor(self, cursor_factory=None):
         return FakeCursor(self)
@@ -133,7 +132,7 @@ class FakeCursor:
             (case_id, specialist, failed_tool, failed_args_j,
              failed_exit, stderr_tail, strategy,
              retry_tool, retry_args_j, succeeded) = params
-            self._conn.rows.append({
+            self._conn.sc_rows.append({
                 "case_id": case_id,
                 "specialist": specialist,
                 "failed_tool": failed_tool,
@@ -147,7 +146,19 @@ class FakeCursor:
             })
             self._rows = []
         elif sql_u.startswith("SELECT") and "SELF_CORRECTIONS" in sql_u:
-            self._rows = []
+            if params and len(params) >= 3:
+                case_id, specialist, failed_tool = params[0], params[1], params[2]
+                self._rows = [
+                    {"retry_tool": r["retry_tool"],
+                     "failed_exit": r["failed_exit"],
+                     "succeeded": r["succeeded"]}
+                    for r in self._conn.sc_rows
+                    if r["case_id"] == case_id
+                    and r["specialist"] == specialist
+                    and r["failed_tool"] == failed_tool
+                ]
+            else:
+                self._rows = []
         else:
             self._rows = []
 
@@ -157,9 +168,13 @@ class FakeCursor:
 
 class TestSelfCorrectorIntegration(unittest.TestCase):
     """
-    Mock Claude to emit a RETRY_CALL + SUCCESS.
-    Assert exactly 1 self_corrections row with succeeded=True.
-    Assert obs event emitted once.
+    3.2.3 acceptance tests: bounded retry loop of MAX_RETRIES=3.
+
+    test_all_fail   — mock Claude always returns FAILED;
+                      expect exactly 3 sc rows all succeeded=False, returns False.
+    test_first_succeeds — mock Claude succeeds immediately;
+                          expect exactly 1 sc row succeeded=True, returns True.
+    test_max_retries_not_exceeded — pre-populate 3 rows; no new attempt, returns False.
     """
 
     def setUp(self):
@@ -171,17 +186,49 @@ class TestSelfCorrectorIntegration(unittest.TestCase):
 
         self.obs_fn = fake_obs
 
-    def _mock_claude(self, prompt, model="claude-sonnet-4-6", timeout=300):
+    def _mock_claude_fail(self, prompt, model="claude-sonnet-4-6", timeout=300):
+        return (0,
+                'RETRY_CALL: {"tool": "vol3", "args": {"plugin": "windows.info"}}\n'
+                "FAILED\n")
+
+    def _mock_claude_succeed(self, prompt, model="claude-sonnet-4-6", timeout=300):
         return (0,
                 'RETRY_CALL: {"tool": "windows.info", "args": {"case": "smoke-002"}}\n'
                 "SUCCESS\n")
 
-    def test_single_retry_succeeds(self):
+    def test_all_fail_exhausts_max_retries(self):
+        """3.2.3: all 3 retries fail → 3 rows in self_corrections, returns False."""
         sc = SelfCorrector(conn=self.conn, obs_fn=self.obs_fn)
 
-        with unittest.mock.patch("adws.self_correct._run_claude", side_effect=self._mock_claude):
+        with unittest.mock.patch("adws.self_correct._run_claude", side_effect=self._mock_claude_fail):
             result = sc.attempt(
-                case_id="smoke-002",
+                case_id="smoke-fail",
+                specialist="memory",
+                failed_tool="vol3",
+                failed_args={"plugin": "windows.malfind"},
+                failed_exit=1,
+                stderr_tail="bad arg: unknown plugin xyz",
+            )
+
+        self.assertFalse(result, "attempt() must return False when all retries fail")
+
+        rows = self.conn.sc_rows
+        self.assertEqual(len(rows), MAX_RETRIES,
+                         f"Expected exactly {MAX_RETRIES} sc rows, got {len(rows)}")
+        for row in rows:
+            self.assertFalse(row["succeeded"], "All rows must have succeeded=False")
+
+        attempt_events = [e for e in self.obs_events if e[0] == "Sleuth.self_correct.attempt"]
+        self.assertEqual(len(attempt_events), MAX_RETRIES,
+                         f"Expected {MAX_RETRIES} attempt obs events, got {len(attempt_events)}")
+
+    def test_first_retry_succeeds(self):
+        """3.2.3: first retry succeeds → 1 row succeeded=True, returns True."""
+        sc = SelfCorrector(conn=self.conn, obs_fn=self.obs_fn)
+
+        with unittest.mock.patch("adws.self_correct._run_claude", side_effect=self._mock_claude_succeed):
+            result = sc.attempt(
+                case_id="smoke-ok",
                 specialist="memory",
                 failed_tool="vol3",
                 failed_args={"plugin": "windows.malfind"},
@@ -189,10 +236,10 @@ class TestSelfCorrectorIntegration(unittest.TestCase):
                 stderr_tail="Unsatisfied requirement: translation layer",
             )
 
-        self.assertTrue(result, "attempt() must return True when retry succeeds")
+        self.assertTrue(result, "attempt() must return True when first retry succeeds")
 
-        rows = self.conn.rows
-        self.assertEqual(len(rows), 1, f"Expected exactly 1 self_corrections row, got {len(rows)}")
+        rows = self.conn.sc_rows
+        self.assertEqual(len(rows), 1, f"Expected exactly 1 sc row, got {len(rows)}")
         self.assertTrue(rows[0]["succeeded"], "Row must have succeeded=True")
 
         attempt_events = [e for e in self.obs_events if e[0] == "Sleuth.self_correct.attempt"]
@@ -203,31 +250,26 @@ class TestSelfCorrectorIntegration(unittest.TestCase):
         self.assertEqual(len(success_events), 1, "Expected exactly 1 succeeded obs event")
 
     def test_max_retries_not_exceeded(self):
-        pre_rows = [
-            {"retry_tool": "windows.info", "failed_exit": 1, "succeeded": False},
-            {"retry_tool": "windows.info", "failed_exit": 1, "succeeded": False},
-            {"retry_tool": "windows.info", "failed_exit": 1, "succeeded": False},
-        ]
-        for r in pre_rows:
-            self.conn.rows.append(r)
+        """Pre-populate 3 rows; no new attempt, returns False immediately."""
+        for i in range(MAX_RETRIES):
+            self.conn.sc_rows.append({
+                "case_id": "smoke-max",
+                "specialist": "memory",
+                "failed_tool": "vol3",
+                "failed_args": {},
+                "failed_exit": 1,
+                "stderr_tail": "err",
+                "retry_strategy": "adjust_args",
+                "retry_tool": "vol3",
+                "retry_args": {},
+                "succeeded": False,
+            })
 
-        class _FakeConn(FakeConn):
-            def cursor(self_inner, cursor_factory=None):
-                class _C(FakeCursor):
-                    def execute(self_c, sql, params=None):
-                        if "SELECT" in sql.upper():
-                            self_c._rows = [dict(r) for r in pre_rows]
-                        else:
-                            super().execute(sql, params)
+        sc = SelfCorrector(conn=self.conn, obs_fn=self.obs_fn)
 
-                return _C(self_inner)
-
-        conn2 = _FakeConn()
-        sc = SelfCorrector(conn=conn2, obs_fn=self.obs_fn)
-
-        with unittest.mock.patch("adws.self_correct._run_claude", side_effect=self._mock_claude):
+        with unittest.mock.patch("adws.self_correct._run_claude", side_effect=self._mock_claude_succeed):
             result = sc.attempt(
-                case_id="smoke-003",
+                case_id="smoke-max",
                 specialist="memory",
                 failed_tool="vol3",
                 failed_args={},
@@ -236,8 +278,8 @@ class TestSelfCorrectorIntegration(unittest.TestCase):
             )
 
         self.assertFalse(result, "Must return False when MAX_RETRIES already reached")
-        new_rows = [r for r in conn2.rows if "retry_strategy" in r]
-        self.assertEqual(len(new_rows), 0, "No new rows should be inserted when at MAX_RETRIES")
+        self.assertEqual(len(self.conn.sc_rows), MAX_RETRIES,
+                         "No new rows should be inserted when at MAX_RETRIES")
 
 
 if __name__ == "__main__":

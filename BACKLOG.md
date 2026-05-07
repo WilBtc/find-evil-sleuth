@@ -129,7 +129,7 @@
   - Done when: `./bin/es cite F-007` includes both `tool_call.id` (original) and `validation_tool_call.id` for any confirmed finding.
   - Touch: `migrations/009_findings_validation_tool_call.sql`, `evidence-store/src/{findings.rs,cite.rs}`.
 
-- [ ] **3.2.3 Self-correct loop bounded retry of 3 (currently 1)**
+- [x] **3.2.3 Self-correct loop bounded retry of 3 (currently 1)**
   - `adws/self_correct.py::_attempt_loop` does ONE attempt; `investigate.py::state_self_correcting` calls it once. Restructure so up to 3 retries happen before bailing; each retry feeds prior failures into the next prompt.
   - Done when: a deliberately-broken tool call (mis-stated arg) triggers exactly 3 retry attempts visible in `self_corrections` table when none succeeds; one retry when first succeeds.
   - Touch: `adws/self_correct.py`, `adws/investigate.py`.

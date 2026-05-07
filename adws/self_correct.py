@@ -299,87 +299,91 @@ class SelfCorrector:
         failed_exit: int,
         stderr_tail: str,
     ) -> bool:
-        prior_rows = _db_query(
-            conn,
-            "SELECT retry_tool, failed_exit, succeeded "
-            "FROM self_corrections "
-            "WHERE case_id=%s AND specialist=%s AND failed_tool=%s "
-            "ORDER BY created_at",
-            (case_id, specialist, failed_tool),
-        )
-
-        if len(prior_rows) >= MAX_RETRIES:
-            log.warning(
-                "Already at MAX_RETRIES=%d for %s/%s/%s — skipping",
-                MAX_RETRIES, case_id, specialist, failed_tool,
+        while True:
+            prior_rows = _db_query(
+                conn,
+                "SELECT retry_tool, failed_exit, succeeded "
+                "FROM self_corrections "
+                "WHERE case_id=%s AND specialist=%s AND failed_tool=%s "
+                "ORDER BY created_at",
+                (case_id, specialist, failed_tool),
             )
-            return False
 
-        attempt_number = len(prior_rows) + 1
-        strategy = _pick_strategy(failed_tool, stderr_tail)
+            if len(prior_rows) >= MAX_RETRIES:
+                log.warning(
+                    "Already at MAX_RETRIES=%d for %s/%s/%s — stopping",
+                    MAX_RETRIES, case_id, specialist, failed_tool,
+                )
+                return False
 
-        log.info(
-            "self_correct attempt=%d strategy=%s tool=%s case=%s",
-            attempt_number, strategy, failed_tool, case_id,
-        )
-        _obs(
-            "Sleuth.self_correct.attempt",
-            {
-                "case_id": case_id,
-                "specialist": specialist,
-                "failed_tool": failed_tool,
-                "attempt": attempt_number,
-                "strategy": strategy,
-            },
-            self._obs_fn,
-        )
+            attempt_number = len(prior_rows) + 1
+            strategy = _pick_strategy(failed_tool, stderr_tail)
 
-        prompt = build_retry_prompt(
-            case_id=case_id,
-            specialist=specialist,
-            failed_tool=failed_tool,
-            failed_args=failed_args,
-            failed_exit=failed_exit,
-            stderr_tail=stderr_tail,
-            attempt_number=attempt_number,
-            prior_attempts=[dict(r) for r in prior_rows],
-            strategy=strategy,
-        )
-
-        rc, output = _run_claude(prompt, model=self._model)
-
-        retry_tool, retry_args, succeeded = self._parse_claude_output(
-            output, failed_tool, failed_args, case_id,
-        )
-
-        _db_exec(
-            conn,
-            "INSERT INTO self_corrections "
-            "(case_id, specialist, failed_tool, failed_args, failed_exit, "
-            " stderr_tail, retry_strategy, retry_tool, retry_args, succeeded) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-            (
-                case_id, specialist, failed_tool,
-                json.dumps(failed_args), failed_exit,
-                stderr_tail[:2000],
-                strategy, retry_tool,
-                json.dumps(retry_args),
-                succeeded,
-            ),
-        )
-
-        if succeeded:
-            log.info("self_correct SUCCEEDED (tool=%s)", retry_tool)
+            log.info(
+                "self_correct attempt=%d strategy=%s tool=%s case=%s",
+                attempt_number, strategy, failed_tool, case_id,
+            )
             _obs(
-                "Sleuth.self_correct.succeeded",
-                {"case_id": case_id, "specialist": specialist,
-                 "retry_tool": retry_tool, "attempt": attempt_number},
+                "Sleuth.self_correct.attempt",
+                {
+                    "case_id": case_id,
+                    "specialist": specialist,
+                    "failed_tool": failed_tool,
+                    "attempt": attempt_number,
+                    "strategy": strategy,
+                },
                 self._obs_fn,
             )
-        else:
-            log.warning("self_correct attempt %d FAILED (tool=%s rc=%d)", attempt_number, retry_tool, rc)
 
-        return succeeded
+            prompt = build_retry_prompt(
+                case_id=case_id,
+                specialist=specialist,
+                failed_tool=failed_tool,
+                failed_args=failed_args,
+                failed_exit=failed_exit,
+                stderr_tail=stderr_tail,
+                attempt_number=attempt_number,
+                prior_attempts=[dict(r) for r in prior_rows],
+                strategy=strategy,
+            )
+
+            rc, output = _run_claude(prompt, model=self._model)
+
+            retry_tool, retry_args, succeeded = self._parse_claude_output(
+                output, failed_tool, failed_args, case_id,
+            )
+
+            _db_exec(
+                conn,
+                "INSERT INTO self_corrections "
+                "(case_id, specialist, failed_tool, failed_args, failed_exit, "
+                " stderr_tail, retry_strategy, retry_tool, retry_args, succeeded) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    case_id, specialist, failed_tool,
+                    json.dumps(failed_args), failed_exit,
+                    stderr_tail[:2000],
+                    strategy, retry_tool,
+                    json.dumps(retry_args),
+                    succeeded,
+                ),
+            )
+
+            if succeeded:
+                log.info("self_correct SUCCEEDED (tool=%s attempt=%d)", retry_tool, attempt_number)
+                _obs(
+                    "Sleuth.self_correct.succeeded",
+                    {"case_id": case_id, "specialist": specialist,
+                     "retry_tool": retry_tool, "attempt": attempt_number},
+                    self._obs_fn,
+                )
+                return True
+
+            log.warning(
+                "self_correct attempt %d FAILED (tool=%s rc=%d) — %s",
+                attempt_number, retry_tool, rc,
+                "retrying" if attempt_number < MAX_RETRIES else "giving up",
+            )
 
     def _parse_claude_output(
         self,
