@@ -8,30 +8,32 @@
 --
 -- Input/image/pcap/rules/target properties that are read-only remain ^/case/.
 -- Do NOT edit 002_tool_specs_seed.sql in place; this migration is the record.
+--
+-- NOTE: args_schema column is native jsonb; no cast needed.
 
 UPDATE tool_specs
 SET args_schema = jsonb_set(
-    args_schema::jsonb,
+    args_schema,
     '{properties,output_dir,pattern}',
     '"^/scratch/"'
-)::text
+)
 WHERE tool IN ('tsk_recover', 'bulk_extractor', 'zeek', 'suricata')
-  AND args_schema::jsonb #>> '{properties,output_dir,pattern}' = '^/case/';
+  AND args_schema #>> '{properties,output_dir,pattern}' = '^/case/';
 
 UPDATE tool_specs
 SET args_schema = jsonb_set(
-    args_schema::jsonb,
+    args_schema,
     '{properties,output_file,pattern}',
     '"^/scratch/"'
-)::text
+)
 WHERE tool IN ('log2timeline', 'psort', 'tshark')
-  AND args_schema::jsonb #>> '{properties,output_file,pattern}' = '^/case/';
+  AND args_schema #>> '{properties,output_file,pattern}' = '^/case/';
 
 UPDATE tool_specs
 SET args_schema = jsonb_set(
-    args_schema::jsonb,
+    args_schema,
     '{properties,output,pattern}',
     '"^/scratch/"'
-)::text
+)
 WHERE tool IN ('editcap')
-  AND args_schema::jsonb #>> '{properties,output,pattern}' = '^/case/';
+  AND args_schema #>> '{properties,output,pattern}' = '^/case/';
