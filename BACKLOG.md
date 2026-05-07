@@ -297,7 +297,7 @@
   - Done when: AGE graph for the LoneWolf case renders with ≥30 nodes, edges visible, clicking a Process node shows the findings that reference it.
   - Touch: `saas/src/routes/graph.rs`, `saas/templates/graph.html`, `saas/static/vis-network.min.js` (vendor in).
 
-- [ ] **5.2.5 Page: Audit chain (`/case/:id/audit`) — Merkle roots**
+- [x] **5.2.5 Page: Audit chain (`/case/:id/audit`) — Merkle roots**
   - Linear list of `merkle_roots` rows for the case, oldest at top. For each root: rolled_up_at, root_hash (truncated → click reveals full), prev_root link to previous, leaf_count, "verify" button that re-derives the root from leaves and shows match. Highlight any tampering.
   - Done when: audit page renders ≥1 merkle root for LoneWolf case; verify button shows green check on a clean DB; manually corrupting a tool_call stdout_hash flips the verify to red.
   - Touch: `saas/src/routes/audit.rs`, `saas/templates/audit.html`, also a `verify` SQL function in `migrations/014_merkle_verify.sql` (computes root from leaves — pure SQL).
