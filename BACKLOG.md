@@ -119,7 +119,7 @@
 
 ## P3.2 Hardening — high-priority but non-blocking
 
-- [ ] **3.2.1 AGE Cypher injection fix in `sp_graph_assert` / `sp_graph_edge`**
+- [x] **3.2.1 AGE Cypher injection fix in `sp_graph_assert` / `sp_graph_edge`**
   - Forensic strings (filenames `O'Reilly.docx`, registry paths, etc.) embedded in single-quoted Cypher will inject. Use `quote_literal()` for values; reject keys not matching `^[A-Za-z_][A-Za-z0-9_]*$`.
   - Done when: a regression test inserts a node with property value `bob's file.exe` and a query `MATCH (f:File {name:"bob's file.exe"})` returns it.
   - Touch: `migrations/003_age_helpers.sql` (rewrite functions; new migration `008_age_helpers_quoted.sql` that DROPs and re-creates).
