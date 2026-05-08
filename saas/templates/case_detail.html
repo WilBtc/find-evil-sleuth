@@ -65,8 +65,6 @@
       <header class="flex items-start justify-between gap-4 mb-3">
         <div class="flex items-baseline gap-2 flex-wrap">
           <span class="eyebrow">{{ sc.created_at | date(format="%H:%M:%S") }}</span>
-          <span class="id-mono text-[13px]">{{ sc.specialist }}</span>
-          <span style="color: var(--ink-quiet);">·</span>
           <span class="text-[13px]" style="color: var(--ink-mute);">{{ sc.retry_strategy }}</span>
         </div>
         {% if sc.succeeded == true %}<span class="chip chip-ok">recovered</span>
