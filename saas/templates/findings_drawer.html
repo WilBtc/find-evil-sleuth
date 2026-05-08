@@ -1,0 +1,108 @@
+<div class="drawer-backdrop"
+     onclick="(function(h){while(h.firstChild)h.removeChild(h.firstChild)})(document.getElementById('drawer-host'))">
+</div>
+
+<aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+  <header class="px-7 pt-7 pb-5 sticky top-0 z-10"
+          style="background: var(--bg-soft); border-bottom: 1px solid var(--line-soft);">
+    <div class="flex items-center justify-between mb-3">
+      <span class="cite" id="drawer-title">{{ finding.finding_id }}</span>
+      <button type="button"
+              onclick="(function(h){while(h.firstChild)h.removeChild(h.firstChild)})(document.getElementById('drawer-host'))"
+              class="text-[18px] leading-none px-2"
+              style="color: var(--ink-quiet);"
+              aria-label="Close">×</button>
+    </div>
+    <h2 class="display text-[24px] leading-tight" style="color: var(--ink); max-width: 50ch;">
+      {{ finding.claim }}
+    </h2>
+    <div class="flex items-center gap-2 mt-3 text-[12px]">
+      {% if finding.validation_status == "confirmed" %}<span class="chip chip-ok">confirmed</span>
+      {% elif finding.validation_status == "refuted" %}<span class="chip chip-bad">refuted</span>
+      {% elif finding.validation_status == "inconclusive" %}<span class="chip chip-warn">inconclusive</span>
+      {% else %}<span class="chip chip-quiet">{{ finding.validation_status }}</span>{% endif %}
+
+      {% if finding.confidence %}<span class="chip chip-quiet">confidence: {{ finding.confidence }}</span>{% endif %}
+      {% if finding.mitre_technique %}<span class="chip chip-quiet" style="color: var(--clay-deep);">{{ finding.mitre_technique }}</span>{% endif %}
+    </div>
+  </header>
+
+  <div class="px-7 py-6 space-y-7">
+
+    <section>
+      <div class="eyebrow mb-2">Tool call</div>
+      {% if tool_call %}
+      <div class="well px-4 py-3">
+        <div class="flex items-baseline justify-between gap-3 mb-2">
+          <span class="id-mono text-[14px]" style="color: var(--ink);">{{ tool_call.tool }}</span>
+          {% if tool_call.exit_code == 0 %}<span class="chip chip-ok">exit 0</span>
+          {% elif tool_call.exit_code is defined %}<span class="chip chip-bad">exit {{ tool_call.exit_code }}</span>
+          {% else %}<span class="chip chip-warn">running</span>{% endif %}
+        </div>
+        <div class="text-[12px]" style="color: var(--ink-quiet);">
+          <span class="id-mono">{{ tool_call.started_at | date(format="%Y-%m-%d %H:%M:%S UTC") }}</span>
+          {% if tool_call.duration_ms %} · {{ tool_call.duration_ms }} ms{% endif %}
+          {% if tool_call.is_validation %} · validator re-run{% endif %}
+        </div>
+      </div>
+      {% if args_json %}
+      <details class="mt-2">
+        <summary class="text-[12px] cursor-pointer" style="color: var(--ink-mute);">arguments</summary>
+        <pre class="well mt-2 px-4 py-3 text-[12px] overflow-x-auto" style="font-family: var(--font-mono);">{{ args_json }}</pre>
+      </details>
+      {% endif %}
+      {% else %}
+      <div class="text-[13px]" style="color: var(--ink-quiet);">No tool call linked.</div>
+      {% endif %}
+    </section>
+
+    {% if finding.byte_offset %}
+    <section>
+      <div class="eyebrow mb-2">Artifact</div>
+      <div class="text-[13px]" style="color: var(--ink-soft);">
+        Byte offset <span class="id-mono">{{ finding.byte_offset }}</span>
+      </div>
+    </section>
+    {% endif %}
+
+    <section>
+      <div class="eyebrow mb-2">Validation history</div>
+      {% if validation_runs | length == 0 %}
+      <div class="text-[13px]" style="color: var(--ink-quiet);">No validation runs yet.</div>
+      {% else %}
+      <ul class="space-y-2">
+        {% for r in validation_runs %}
+        <li class="flex items-center gap-3 text-[13px]">
+          <span class="id-mono" style="color: var(--ink-quiet);">
+            {{ r.started_at | date(format="%Y-%m-%d %H:%M") }}
+          </span>
+          {% if r.result == "confirmed" %}<span class="chip chip-ok">confirmed</span>
+          {% elif r.result == "refuted" %}<span class="chip chip-bad">refuted</span>
+          {% elif r.result %}<span class="chip chip-warn">{{ r.result }}</span>
+          {% else %}<span class="chip chip-quiet">pending</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section>
+      <div class="eyebrow mb-2">Audit trace</div>
+      <p class="text-[12.5px] mb-2" style="color: var(--ink-quiet); max-width: 60ch;">
+        Reproducible from the command line:
+      </p>
+      <pre class="well px-4 py-3 text-[12px] overflow-x-auto"
+           style="font-family: var(--font-mono); color: var(--ink-soft);">./bin/es cite {{ finding.finding_id }}</pre>
+      <details class="mt-3">
+        <summary class="text-[12px] cursor-pointer" style="color: var(--ink-mute);">full JSON</summary>
+        <pre class="well mt-2 px-4 py-3 text-[11px] overflow-x-auto" style="font-family: var(--font-mono); max-height: 360px;">{{ cite_json }}</pre>
+      </details>
+    </section>
+
+    <section class="hairline pt-5 flex items-center justify-between text-[12px]" style="color: var(--ink-quiet);">
+      <span class="id-mono">{{ finding.case_id }}</span>
+      <a href="/finding/{{ finding.finding_id }}" class="btn-link">Open as page →</a>
+    </section>
+
+  </div>
+</aside>
