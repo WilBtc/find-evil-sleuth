@@ -3,157 +3,127 @@
 {% block title %}Findings — {{ case_id }} — find-evil-sleuth inspector{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
 
-  <div class="flex items-center gap-3 mb-6">
-    <a href="/" class="text-gray-500 hover:text-green-400 transition-colors text-sm">&#x2190; Cases</a>
-    <span class="text-gray-700">/</span>
-    <a href="/case/{{ case_id }}" class="text-gray-500 hover:text-green-400 transition-colors text-sm font-mono">{{ case_id }}</a>
-    <span class="text-gray-700">/</span>
-    <h1 class="text-xl font-bold text-green-400 font-mono">Findings</h1>
-    {% if case_status == "running" %}
-    <span class="inline-block px-2 py-0.5 rounded text-xs bg-yellow-900 text-yellow-300">running</span>
-    {% elif case_status == "done" %}
-    <span class="inline-block px-2 py-0.5 rounded text-xs bg-green-900 text-green-300">done</span>
-    {% elif case_status == "failed" %}
-    <span class="inline-block px-2 py-0.5 rounded text-xs bg-red-900 text-red-300">failed</span>
-    {% else %}
-    <span class="inline-block px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{{ case_status }}</span>
-    {% endif %}
-  </div>
-
-  <form method="get" class="mb-4 flex flex-wrap gap-3 items-end">
-    <div class="flex flex-col gap-1">
-      <label class="text-xs text-gray-500 uppercase tracking-wider">Status</label>
-      <select name="validation_status"
-              class="bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded px-3 py-1.5 focus:outline-none focus:border-green-600"
-              onchange="this.form.submit()">
-        <option value="" {% if filter_status == "" %}selected{% endif %}>All statuses</option>
-        <option value="confirmed"    {% if filter_status == "confirmed" %}selected{% endif %}>confirmed</option>
-        <option value="pending"      {% if filter_status == "pending" %}selected{% endif %}>pending</option>
-        <option value="refuted"      {% if filter_status == "refuted" %}selected{% endif %}>refuted</option>
-        <option value="inconclusive" {% if filter_status == "inconclusive" %}selected{% endif %}>inconclusive</option>
-        <option value="drift"        {% if filter_status == "drift" %}selected{% endif %}>drift</option>
-      </select>
-    </div>
-
-    <div class="flex flex-col gap-1">
-      <label class="text-xs text-gray-500 uppercase tracking-wider">Specialist</label>
-      <select name="specialist"
-              class="bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded px-3 py-1.5 focus:outline-none focus:border-green-600"
-              onchange="this.form.submit()">
-        <option value="" {% if filter_specialist == "" %}selected{% endif %}>All specialists</option>
-        {% for sp in specialists %}
-        <option value="{{ sp }}" {% if filter_specialist == sp %}selected{% endif %}>{{ sp }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="flex flex-col gap-1">
-      <label class="text-xs text-gray-500 uppercase tracking-wider">Sort by</label>
-      <select name="sort"
-              class="bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded px-3 py-1.5 focus:outline-none focus:border-green-600"
-              onchange="this.form.submit()">
-        <option value="id"         {% if filter_sort == "id" %}selected{% endif %}>Finding ID</option>
-        <option value="specialist" {% if filter_sort == "specialist" %}selected{% endif %}>Specialist</option>
-        <option value="status"     {% if filter_sort == "status" %}selected{% endif %}>Status</option>
-        <option value="confidence" {% if filter_sort == "confidence" %}selected{% endif %}>Confidence</option>
-        <option value="mitre"      {% if filter_sort == "mitre" %}selected{% endif %}>MITRE</option>
-      </select>
-    </div>
-
-    <div class="flex items-end gap-2">
-      <button type="submit"
-              class="px-3 py-1.5 rounded bg-green-800 hover:bg-green-700 text-green-100 text-sm transition-colors">
-        Filter
-      </button>
-      <a href="/case/{{ case_id }}/findings"
-         class="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm transition-colors">
-        Reset
-      </a>
-    </div>
-
-    <div class="ml-auto flex items-end">
-      <span class="text-sm text-gray-400">
-        <span class="font-mono text-green-400">{{ total }}</span> findings
-        {% if filter_status != "" or filter_specialist != "" %}
-        <span class="text-gray-600 text-xs ml-1">(filtered)</span>
-        {% endif %}
-      </span>
-    </div>
-  </form>
-
-  <div class="overflow-x-auto rounded border border-gray-800">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-900 text-gray-400 text-xs uppercase tracking-wider">
-        <tr>
-          <th class="px-4 py-3 text-left w-28">ID</th>
-          <th class="px-4 py-3 text-left">Claim</th>
-          <th class="px-4 py-3 text-left w-32">Specialist</th>
-          <th class="px-4 py-3 text-left w-32">MITRE</th>
-          <th class="px-4 py-3 text-left w-32">Status</th>
-          <th class="px-4 py-3 text-left w-28">Confidence</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if findings | length == 0 %}
-        <tr>
-          <td colspan="6" class="px-4 py-8 text-center text-gray-500">
-            No findings match the current filter.
-          </td>
-        </tr>
-        {% else %}
-        {% for f in findings %}
-        <tr class="border-b border-gray-800 hover:bg-gray-800 cursor-pointer transition-colors"
-            onclick="window.location='/finding/{{ f.finding_id }}'">
-          <td class="px-4 py-3 font-mono text-green-400 text-sm whitespace-nowrap">
-            <a href="/finding/{{ f.finding_id }}"
-               class="hover:underline"
-               onclick="event.stopPropagation()">{{ f.finding_id }}</a>
-          </td>
-          <td class="px-4 py-3 text-gray-200 text-sm">
-            <span class="line-clamp-2">{{ f.claim }}</span>
-          </td>
-          <td class="px-4 py-3 text-gray-400 text-xs font-mono">{{ f.specialist }}</td>
-          <td class="px-4 py-3 text-gray-400 text-xs font-mono">
-            {% if f.mitre_technique %}
-            <span class="text-orange-400">{{ f.mitre_technique }}</span>
-            {% else %}
-            <span class="text-gray-700">&mdash;</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3">
-            {% if f.validation_status == "confirmed" %}
-            <span class="inline-block px-2 py-0.5 rounded text-xs bg-green-900 text-green-300 font-mono">confirmed</span>
-            {% elif f.validation_status == "pending" %}
-            <span class="inline-block px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300 font-mono">pending</span>
-            {% elif f.validation_status == "refuted" %}
-            <span class="inline-block px-2 py-0.5 rounded text-xs bg-red-900 text-red-300 font-mono">refuted</span>
-            {% elif f.validation_status == "inconclusive" %}
-            <span class="inline-block px-2 py-0.5 rounded text-xs bg-yellow-900 text-yellow-300 font-mono">inconclusive</span>
-            {% elif f.validation_status == "drift" %}
-            <span class="inline-block px-2 py-0.5 rounded text-xs bg-purple-900 text-purple-300 font-mono">drift</span>
-            {% else %}
-            <span class="inline-block px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300 font-mono">{{ f.validation_status }}</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 text-xs font-mono">
-            {% if f.confidence == "confirmed" or f.confidence == "high" %}
-            <span class="text-green-400">{{ f.confidence }}</span>
-            {% elif f.confidence == "inferred" or f.confidence == "medium" %}
-            <span class="text-yellow-400">{{ f.confidence }}</span>
-            {% elif f.confidence == "low" %}
-            <span class="text-red-400">{{ f.confidence }}</span>
-            {% else %}
-            <span class="text-gray-400">{{ f.confidence }}</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-
+<div class="flex items-baseline gap-3 mb-2 text-[13px]" style="color: var(--ink-quiet);">
+  <a href="/" class="hover:underline" style="color: var(--ink-mute);">Cases</a>
+  <span>/</span>
+  <a href="/case/{{ case_id }}" class="hover:underline" style="color: var(--ink-mute);">
+    <span class="id-mono">{{ case_id }}</span>
+  </a>
+  <span>/</span>
+  <span>Findings</span>
 </div>
+
+<div class="flex items-end justify-between flex-wrap gap-4 mb-8">
+  <div>
+    <h1 class="display text-[clamp(28px,3.4vw,40px)]">Findings</h1>
+    <p class="text-[14px] mt-2" style="color: var(--ink-mute);">
+      <span class="num text-[18px]" style="color: var(--ink);">{{ total }}</span> total
+      {% if filter_status != "" or filter_specialist != "" %}<span style="color: var(--ink-quiet);">· filtered</span>{% endif %}
+      &nbsp;·&nbsp;every claim opens to its tool call.
+    </p>
+  </div>
+</div>
+
+<form method="get" class="surface px-5 py-4 mb-6 flex flex-wrap gap-x-6 gap-y-3 items-end">
+  <div class="flex flex-col gap-1">
+    <label class="eyebrow">Status</label>
+    <select name="validation_status" onchange="this.form.submit()"
+            class="text-[13px] px-3 py-1.5 rounded border bg-transparent"
+            style="border-color: var(--line); color: var(--ink);">
+      <option value=""              {% if filter_status == "" %}selected{% endif %}>All</option>
+      <option value="confirmed"    {% if filter_status == "confirmed" %}selected{% endif %}>Confirmed</option>
+      <option value="pending"      {% if filter_status == "pending" %}selected{% endif %}>Pending</option>
+      <option value="refuted"      {% if filter_status == "refuted" %}selected{% endif %}>Refuted</option>
+      <option value="inconclusive" {% if filter_status == "inconclusive" %}selected{% endif %}>Inconclusive</option>
+      <option value="drift"        {% if filter_status == "drift" %}selected{% endif %}>Drift</option>
+    </select>
+  </div>
+
+  <div class="flex flex-col gap-1">
+    <label class="eyebrow">Specialist</label>
+    <select name="specialist" onchange="this.form.submit()"
+            class="text-[13px] px-3 py-1.5 rounded border bg-transparent"
+            style="border-color: var(--line); color: var(--ink);">
+      <option value="" {% if filter_specialist == "" %}selected{% endif %}>All</option>
+      {% for sp in specialists %}
+      <option value="{{ sp }}" {% if filter_specialist == sp %}selected{% endif %}>{{ sp }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="flex flex-col gap-1">
+    <label class="eyebrow">Sort</label>
+    <select name="sort" onchange="this.form.submit()"
+            class="text-[13px] px-3 py-1.5 rounded border bg-transparent"
+            style="border-color: var(--line); color: var(--ink);">
+      <option value="id"         {% if filter_sort == "id" %}selected{% endif %}>Finding ID</option>
+      <option value="specialist" {% if filter_sort == "specialist" %}selected{% endif %}>Specialist</option>
+      <option value="status"     {% if filter_sort == "status" %}selected{% endif %}>Status</option>
+      <option value="confidence" {% if filter_sort == "confidence" %}selected{% endif %}>Confidence</option>
+      <option value="mitre"      {% if filter_sort == "mitre" %}selected{% endif %}>MITRE</option>
+    </select>
+  </div>
+
+  {% if filter_status != "" or filter_specialist != "" %}
+  <a href="/case/{{ case_id }}/findings" class="btn btn-ghost">Reset filters</a>
+  {% endif %}
+</form>
+
+<div class="surface overflow-hidden">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="w-28">ID</th>
+        <th>Claim</th>
+        <th class="w-32">Specialist</th>
+        <th class="w-28">MITRE</th>
+        <th class="w-32">Validator</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if findings | length == 0 %}
+      <tr><td colspan="5" class="empty">No findings match this filter.</td></tr>
+      {% else %}
+      {% for f in findings %}
+      <tr class="row-link"
+          hx-get="/finding/{{ f.finding_id }}/drawer"
+          hx-target="#drawer-host"
+          hx-swap="innerHTML"
+          hx-trigger="click"
+          tabindex="0"
+          role="button"
+          aria-label="Open audit trace for {{ f.finding_id }}">
+        <td><span class="cite">{{ f.finding_id }}</span></td>
+        <td>
+          <p class="leading-snug" style="color: var(--ink); max-width: 70ch;">{{ f.claim | truncate(length=180) }}</p>
+        </td>
+        <td class="id-mono" style="color: var(--ink-mute);">{{ f.specialist }}</td>
+        <td>
+          {% if f.mitre_technique %}<span class="id-mono" style="color: var(--clay-deep);">{{ f.mitre_technique }}</span>
+          {% else %}<span style="color: var(--ink-quiet);">—</span>{% endif %}
+        </td>
+        <td>
+          {% if f.validation_status == "confirmed" %}<span class="chip chip-ok">confirmed</span>
+          {% elif f.validation_status == "refuted" %}<span class="chip chip-bad">refuted</span>
+          {% elif f.validation_status == "inconclusive" %}<span class="chip chip-warn">inconclusive</span>
+          {% elif f.validation_status == "drift" %}<span class="chip chip-warn">drift</span>
+          {% else %}<span class="chip chip-quiet">{{ f.validation_status }}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      var host = document.getElementById('drawer-host');
+      while (host && host.firstChild) host.removeChild(host.firstChild);
+    }
+  });
+</script>
+
 {% endblock %}
