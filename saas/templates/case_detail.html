@@ -150,7 +150,7 @@
   var statusEl = document.getElementById('sse-status');
   var dotEl    = document.getElementById('sse-dot');
   var tbody    = document.getElementById('timeline-tbody');
-  var caseId   = {{ case.case_id | json_encode() }};
+  var caseId   = {{ case.case_id | json_encode() | safe }};
 
   var es = new EventSource('/case/' + caseId + '/events');
 
