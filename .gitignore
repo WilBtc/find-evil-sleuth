@@ -2,6 +2,8 @@
 target/
 **/*.rs.bk
 Cargo.lock.*
+# Tailwind output is built locally from saas/styles.in.css, not committed
+saas/static/styles.css
 
 # Evidence (huge, fetched by script, never committed)
 evidence-samples/lone-wolf/
