@@ -3,128 +3,97 @@
 {% block title %}Audit Chain — {{ case_id }} — find-evil-sleuth inspector{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
 
-  <div class="flex items-center gap-3 mb-6">
-    <a href="/" class="text-gray-500 hover:text-green-400 transition-colors text-sm">&#x2190; Cases</a>
-    <span class="text-gray-700">/</span>
-    <a href="/case/{{ case_id }}" class="text-gray-500 hover:text-green-400 transition-colors text-sm font-mono">{{ case_id }}</a>
-    <span class="text-gray-700">/</span>
-    <h1 class="text-xl font-bold text-green-400 font-mono">Audit Chain</h1>
-    <div class="ml-4 flex items-center gap-2">
-      <a href="/case/{{ case_id }}/findings"
-         class="text-xs px-2 py-1 rounded border border-gray-700 text-gray-400 hover:border-green-600 hover:text-green-400 transition-colors">
-        Findings &#x2192;
-      </a>
-      <a href="/case/{{ case_id }}/graph"
-         class="text-xs px-2 py-1 rounded border border-gray-700 text-gray-400 hover:border-purple-600 hover:text-purple-400 transition-colors">
-        Attack Graph &#x2192;
-      </a>
-      <a href="/case/{{ case_id }}"
-         class="text-xs px-2 py-1 rounded border border-gray-700 text-gray-400 hover:border-green-600 hover:text-green-400 transition-colors">
-        Timeline &#x2192;
-      </a>
-    </div>
-    {% if case_status == "running" %}
-    <span class="inline-block px-2 py-0.5 rounded text-xs bg-yellow-900 text-yellow-300">running</span>
-    {% elif case_status == "done" %}
-    <span class="inline-block px-2 py-0.5 rounded text-xs bg-green-900 text-green-300">done</span>
-    {% elif case_status == "failed" %}
-    <span class="inline-block px-2 py-0.5 rounded text-xs bg-red-900 text-red-300">failed</span>
-    {% else %}
-    <span class="inline-block px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{{ case_status }}</span>
-    {% endif %}
-  </div>
-
-  <div class="mb-4 flex items-center gap-4 text-sm text-gray-400">
-    <span>Merkle roots: <span class="text-green-400 font-mono font-bold">{{ root_count }}</span></span>
-    <span class="text-xs text-gray-600">SHA-256 sequential fold over tool_call stdout/stderr hashes, oldest leaf first.</span>
-  </div>
-
-  {% if roots | length == 0 %}
-  <div class="bg-gray-900 rounded border border-gray-800 p-8 text-center text-gray-500 text-sm">
-    No Merkle roots yet for this case. Roots are rolled up periodically by pg_cron.
-  </div>
-  {% else %}
-
-  <div class="flex flex-col gap-4">
-    {% for root in roots %}
-    <div class="bg-gray-900 rounded border border-gray-800 p-4" id="root-{{ root.root_id }}">
-
-      <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-gray-500 font-mono">#{{ root.root_id }}</span>
-          <span class="text-sm text-gray-200 font-mono">{{ root.rolled_up_at | date(format="%Y-%m-%d %H:%M:%S UTC") }}</span>
-          <span class="text-xs text-gray-500">{{ root.leaf_count }} leaves</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            onclick="verifyRoot('{{ case_id }}', {{ root.root_id }})"
-            class="text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:border-green-500 hover:text-green-300 transition-colors font-mono">
-            &#x2713; verify
-          </button>
-          <span id="verify-badge-{{ root.root_id }}" class="hidden text-xs px-2 py-0.5 rounded font-mono font-bold"></span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-2 text-xs font-mono">
-
-        <div class="flex gap-2 items-start">
-          <span class="text-gray-500 w-20 flex-shrink-0">root_hash</span>
-          <span class="text-green-400 break-all cursor-pointer group"
-                onclick="toggleHash(this)"
-                title="Click to toggle full hash">
-            <span class="short">{{ root.root_hash | truncate(length=16, end="…") }}</span>
-            <span class="full hidden">{{ root.root_hash }}</span>
-          </span>
-        </div>
-
-        {% if root.prev_root %}
-        <div class="flex gap-2 items-start">
-          <span class="text-gray-500 w-20 flex-shrink-0">prev_root</span>
-          <a href="#root-{{ loop.index0 }}"
-             class="text-blue-400 hover:text-blue-300 break-all">
-            <span class="short">{{ root.prev_root | truncate(length=16, end="…") }}</span>
-          </a>
-        </div>
-        {% else %}
-        <div class="flex gap-2 items-start">
-          <span class="text-gray-500 w-20 flex-shrink-0">prev_root</span>
-          <span class="text-gray-600 italic">genesis (no predecessor)</span>
-        </div>
-        {% endif %}
-
-      </div>
-
-      <div id="verify-detail-{{ root.root_id }}" class="hidden mt-3 pt-3 border-t border-gray-800 text-xs font-mono">
-      </div>
-
-    </div>
-    {% endfor %}
-  </div>
-
-  {% endif %}
-
+<div class="flex items-baseline gap-3 mb-2 text-[13px]" style="color: var(--ink-quiet);">
+  <a href="/" class="hover:underline" style="color: var(--ink-mute);">Cases</a>
+  <span>/</span>
+  <a href="/case/{{ case_id }}" class="hover:underline" style="color: var(--ink-mute);">
+    <span class="id-mono">{{ case_id }}</span>
+  </a>
+  <span>/</span>
+  <span>Audit chain</span>
 </div>
+
+<div class="flex items-end justify-between flex-wrap gap-4 mb-8">
+  <div>
+    <h1 class="display text-[clamp(28px,3.4vw,40px)]">Audit chain</h1>
+    <p class="lede mt-3" style="font-size: 16px; max-width: 65ch;">
+      Each root is a SHA-256 fold over every <span class="id-mono">tool_call</span> stdout/stderr hash in time order, chained to its predecessor.
+      Tampering with any tool call after rollup breaks the chain — verifiable in one click.
+    </p>
+  </div>
+  <div class="surface px-5 py-3 text-right">
+    <div class="eyebrow">Roots</div>
+    <div class="num text-[28px] leading-none">{{ root_count }}</div>
+  </div>
+</div>
+
+{% if roots | length == 0 %}
+<div class="empty">
+  No Merkle roots yet for this case. Roots roll up periodically via <span class="id-mono" style="color: var(--clay-deep);">pg_cron</span>.
+</div>
+{% else %}
+
+<div class="space-y-4">
+  {% for root in roots %}
+  <article class="surface p-6" id="root-{{ root.root_id }}">
+    <header class="flex items-baseline justify-between flex-wrap gap-3 mb-4">
+      <div class="flex items-baseline gap-3 flex-wrap">
+        <span class="eyebrow">Root</span>
+        <span class="num text-[20px]">#{{ root.root_id }}</span>
+        <span class="id-mono text-[13px]" style="color: var(--ink-mute);">
+          {{ root.rolled_up_at | date(format="%Y-%m-%d %H:%M:%S UTC") }}
+        </span>
+        <span class="chip chip-quiet">{{ root.leaf_count }} leaves</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="verifyRoot('{{ case_id }}', {{ root.root_id }})" class="btn btn-ghost">Verify</button>
+        <span id="verify-badge-{{ root.root_id }}" class="hidden chip"></span>
+      </div>
+    </header>
+
+    <dl class="space-y-2 text-[13px]">
+      <div class="flex gap-3 items-start">
+        <dt class="eyebrow w-24 flex-shrink-0 pt-0.5">root hash</dt>
+        <dd class="id-mono break-all cursor-pointer" onclick="toggleHash(this)"
+            style="color: var(--clay-deep);" title="click to expand">
+          <span class="short">{{ root.root_hash | truncate(length=20, end="…") }}</span>
+          <span class="full hidden">{{ root.root_hash }}</span>
+        </dd>
+      </div>
+      <div class="flex gap-3 items-start">
+        <dt class="eyebrow w-24 flex-shrink-0 pt-0.5">prev root</dt>
+        <dd class="id-mono break-all">
+          {% if root.prev_root %}
+          <a href="#root-{{ loop.index0 }}" style="color: var(--ink-soft);" class="hover:underline">
+            {{ root.prev_root | truncate(length=20, end="…") }}
+          </a>
+          {% else %}
+          <span style="color: var(--ink-quiet); font-style: italic; font-family: var(--font-display);">genesis · no predecessor</span>
+          {% endif %}
+        </dd>
+      </div>
+    </dl>
+
+    <div id="verify-detail-{{ root.root_id }}" class="hidden hairline mt-4 pt-4"></div>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
 
 <script>
 function toggleHash(el) {
   const s = el.querySelector('.short');
   const f = el.querySelector('.full');
-  if (f.classList.contains('hidden')) {
-    s.classList.add('hidden');
-    f.classList.remove('hidden');
-  } else {
-    f.classList.add('hidden');
-    s.classList.remove('hidden');
-  }
+  s.classList.toggle('hidden');
+  f.classList.toggle('hidden');
 }
 
 async function verifyRoot(caseId, rootId) {
   const badge  = document.getElementById('verify-badge-' + rootId);
   const detail = document.getElementById('verify-detail-' + rootId);
 
-  badge.className = 'text-xs px-2 py-0.5 rounded font-mono font-bold text-gray-400';
+  badge.className = 'chip chip-quiet';
   badge.textContent = 'checking…';
   badge.classList.remove('hidden');
   detail.classList.add('hidden');
@@ -133,38 +102,59 @@ async function verifyRoot(caseId, rootId) {
     const resp = await fetch('/case/' + caseId + '/audit/' + rootId + '/verify');
     const data = await resp.json();
 
-    if (data.ok) {
-      badge.className = 'text-xs px-2 py-0.5 rounded font-mono font-bold bg-green-900 text-green-300';
-      badge.textContent = '✓ CLEAN';
-    } else {
-      badge.className = 'text-xs px-2 py-0.5 rounded font-mono font-bold bg-red-900 text-red-300';
-      badge.textContent = '✗ TAMPERED';
-    }
+    badge.className = data.ok ? 'chip chip-ok' : 'chip chip-bad';
+    badge.textContent = data.ok ? 'clean' : 'TAMPERED';
     badge.classList.remove('hidden');
 
-    const storedShort  = data.stored_hash  ? data.stored_hash.substring(0, 16)  + '…' : '(empty)';
-    const derivedShort = data.derived_hash ? data.derived_hash.substring(0, 16) + '…' : '(empty)';
-    const match = data.ok
-      ? '<span class="text-green-400">match ✓</span>'
-      : '<span class="text-red-400">MISMATCH — chain integrity violated ✗</span>';
+    const storedShort  = data.stored_hash  ? data.stored_hash.substring(0, 20)  + '…' : '(empty)';
+    const derivedShort = data.derived_hash ? data.derived_hash.substring(0, 20) + '…' : '(empty)';
 
-    detail.innerHTML = `
-      <div class="flex flex-col gap-1 text-gray-300">
-        <div><span class="text-gray-500 w-24 inline-block">stored  </span>
-             <span class="text-green-400 cursor-pointer" title="${data.stored_hash}" onclick="this.textContent=this.getAttribute('title')">${storedShort}</span></div>
-        <div><span class="text-gray-500 w-24 inline-block">derived </span>
-             <span class="text-yellow-400 cursor-pointer" title="${data.derived_hash}" onclick="this.textContent=this.getAttribute('title')">${derivedShort}</span></div>
-        <div><span class="text-gray-500 w-24 inline-block">leaves  </span>${data.leaf_count}</div>
-        <div><span class="text-gray-500 w-24 inline-block">result  </span>${match}</div>
-      </div>`;
+    while (detail.firstChild) detail.removeChild(detail.firstChild);
+    const dl = document.createElement('dl');
+    dl.className = 'space-y-1.5 text-[13px]';
+
+    function row(label, value, mono) {
+      const wrap = document.createElement('div');
+      wrap.className = 'flex gap-3 items-baseline';
+      const dt = document.createElement('dt');
+      dt.className = 'eyebrow w-24 flex-shrink-0';
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      if (mono) dd.className = 'id-mono break-all';
+      dd.textContent = value;
+      wrap.appendChild(dt);
+      wrap.appendChild(dd);
+      return wrap;
+    }
+    dl.appendChild(row('stored',  storedShort, true));
+    dl.appendChild(row('derived', derivedShort, true));
+    dl.appendChild(row('leaves',  String(data.leaf_count), false));
+
+    const matchRow = document.createElement('div');
+    matchRow.className = 'flex gap-3 items-baseline';
+    const matchLabel = document.createElement('dt');
+    matchLabel.className = 'eyebrow w-24 flex-shrink-0';
+    matchLabel.textContent = 'result';
+    const matchVal = document.createElement('dd');
+    matchVal.className = data.ok ? 'chip chip-ok' : 'chip chip-bad';
+    matchVal.textContent = data.ok ? 'match ✓' : 'mismatch — chain integrity violated';
+    matchRow.appendChild(matchLabel);
+    matchRow.appendChild(matchVal);
+    dl.appendChild(matchRow);
+
+    detail.appendChild(dl);
     detail.classList.remove('hidden');
-
   } catch (err) {
-    badge.className = 'text-xs px-2 py-0.5 rounded font-mono font-bold bg-red-900 text-red-300';
+    badge.className = 'chip chip-bad';
     badge.textContent = 'error';
-    detail.innerHTML = '<span class="text-red-400">' + err + '</span>';
+    while (detail.firstChild) detail.removeChild(detail.firstChild);
+    const span = document.createElement('span');
+    span.style.color = 'var(--bad)';
+    span.textContent = String(err);
+    detail.appendChild(span);
     detail.classList.remove('hidden');
   }
 }
 </script>
+
 {% endblock %}
