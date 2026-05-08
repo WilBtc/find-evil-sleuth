@@ -167,11 +167,12 @@ pub async fn new_case(
         ));
     }
 
-    // INSERT cases row (idempotent: ON CONFLICT DO NOTHING; UI surfaces a
-    // "case already exists" via the duplicate row).
+    // INSERT cases row with status='triage' — the lowest state-machine
+    // step. investigate.py's state_init can resume from there cleanly.
+    // (status='pending' or 'running' would be rejected as "unknown state".)
     let inserted = sqlx::query(
         r#"INSERT INTO cases (case_id, name, status)
-           VALUES ($1, $2, 'pending')
+           VALUES ($1, $2, 'triage')
            ON CONFLICT (case_id) DO NOTHING
            RETURNING case_id"#,
     )
