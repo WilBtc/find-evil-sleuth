@@ -19,46 +19,67 @@
     <h1 class="display text-[clamp(28px,3.4vw,40px)]">Attack graph</h1>
     <p class="lede mt-3" style="font-size: 16px; max-width: 60ch;">
       Apache AGE rendering of every process, file, network endpoint, and registry edge the agent observed.
-      Click any node to see the findings that reference it.
+      Click any node to inspect; double-click to focus on its neighborhood.
     </p>
   </div>
   <span id="graph-status" class="eyebrow">loading…</span>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6" style="height: 70vh;">
+<div class="surface px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
+  <input id="search-input" type="search"
+         placeholder="Search nodes (regex ok)…"
+         class="text-[13px] px-3 py-1.5 rounded border bg-transparent outline-none"
+         style="border-color: var(--line); color: var(--ink); min-width: 220px; max-width: 360px; flex: 1;" />
+
+  <div class="flex items-center gap-1.5 text-[12px]" id="filter-chips" style="color: var(--ink-mute);">
+    <span class="eyebrow mr-1">Show</span>
+  </div>
+
+  <div class="flex items-center gap-1.5 ml-auto">
+    <span class="eyebrow mr-1">Layout</span>
+    <button class="btn btn-ghost layout-btn" data-layout="force" data-active="1">Force</button>
+    <button class="btn btn-ghost layout-btn" data-layout="hierarchical">Hierarchical</button>
+    <button id="fit-btn" class="btn btn-ghost">Fit</button>
+    <button id="stabilize-btn" class="btn btn-ghost">Stabilize</button>
+    <button id="reset-btn" class="btn btn-ghost">Reset filters</button>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6" style="height: 70vh;">
   <div class="surface relative overflow-hidden">
     <div id="graph-container" class="absolute inset-0"></div>
+    <div id="graph-empty" class="absolute inset-0 hidden empty">
+      No nodes match the current filter.
+    </div>
   </div>
 
   <aside class="flex flex-col gap-4 min-h-0">
     <div class="surface px-5 py-4">
-      <div class="eyebrow mb-3">Legend</div>
-      <ul class="space-y-1.5 text-[13px]" style="color: var(--ink-soft);">
-        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#c98052"></span>Process</li>
-        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#7896b5"></span>File</li>
-        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#b5564a"></span>Network endpoint</li>
-        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#9c7bbf"></span>Registry key</li>
-        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#6f9b6f"></span>User</li>
-        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#c4768a"></span>IOC</li>
-      </ul>
-    </div>
-
-    <div class="surface px-5 py-4">
       <div class="eyebrow mb-2">Stats</div>
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-3 gap-3">
         <div>
           <div class="text-[11px]" style="color: var(--ink-quiet);">Nodes</div>
-          <div class="num text-[24px] leading-none" id="node-count">—</div>
+          <div class="num text-[22px] leading-none" id="node-count">—</div>
         </div>
         <div>
           <div class="text-[11px]" style="color: var(--ink-quiet);">Edges</div>
-          <div class="num text-[24px] leading-none" id="edge-count">—</div>
+          <div class="num text-[22px] leading-none" id="edge-count">—</div>
         </div>
+        <div>
+          <div class="text-[11px]" style="color: var(--ink-quiet);">Visible</div>
+          <div class="num text-[22px] leading-none" id="visible-count">—</div>
+        </div>
+      </div>
+      <div class="mt-3 text-[11px]" style="color: var(--ink-quiet);">
+        Top degree: <span id="top-degree" class="id-mono" style="color: var(--ink);">—</span>
       </div>
     </div>
 
     <div class="surface px-5 py-4 flex-1 min-h-0 flex flex-col">
-      <div class="eyebrow mb-2">Selected</div>
+      <div class="flex items-center justify-between mb-2">
+        <span class="eyebrow">Selected</span>
+        <button id="focus-btn" class="text-[11px] hidden" style="color: var(--clay-deep);">Focus neighborhood</button>
+      </div>
       <div id="node-detail" class="text-[13px]" style="color: var(--ink-quiet); font-style: italic; font-family: var(--font-display);">
         Click a node to inspect.
       </div>
@@ -68,7 +89,26 @@
 </div>
 
 <style>
-  .legend-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    cursor: pointer;
+    transition: all 120ms ease-out;
+    font-size: 11.5px; line-height: 1;
+    user-select: none;
+    color: var(--ink-soft);
+  }
+  .filter-chip[data-on="1"] { background: var(--bg-soft); border-color: var(--ink-quiet); color: var(--ink); }
+  .filter-chip[data-on="0"] { opacity: 0.45; }
+  .filter-chip:hover { border-color: var(--clay); }
+  .layout-btn[data-active="1"] {
+    background: var(--clay-soft);
+    border-color: var(--clay);
+    color: var(--clay-deep);
+  }
 </style>
 
 <script src="/static/vis-network.min.js"></script>
@@ -76,7 +116,6 @@
 (function () {
   var caseId = {{ case_id | json_encode() | safe }};
 
-  // Warm, desaturated palette in keeping with the cream/clay theme.
   var groupColors = {
     Process:         { background: '#c98052', border: '#a3623c' },
     File:            { background: '#7896b5', border: '#5b7794' },
@@ -86,11 +125,23 @@
     IOC:             { background: '#c4768a', border: '#9c5a6c' },
   };
 
-  var statusEl = document.getElementById('graph-status');
+  var statusEl    = document.getElementById('graph-status');
   var nodeCountEl = document.getElementById('node-count');
   var edgeCountEl = document.getElementById('edge-count');
+  var visibleEl   = document.getElementById('visible-count');
+  var topDegreeEl = document.getElementById('top-degree');
   var nodeDetailEl = document.getElementById('node-detail');
   var nodeFindingsEl = document.getElementById('node-findings');
+  var focusBtnEl   = document.getElementById('focus-btn');
+  var emptyEl      = document.getElementById('graph-empty');
+  var searchEl     = document.getElementById('search-input');
+  var filterEl     = document.getElementById('filter-chips');
+
+  var state = {
+    network: null, allNodes: null, allEdges: null,
+    nodesDS: null, edgesDS: null, groupsOn: {}, searchTerm: '',
+    focusedId: null, degree: {},
+  };
 
   fetch('/case/' + caseId + '/graph/data')
     .then(function (r) { return r.json(); })
@@ -100,27 +151,65 @@
 
       if (data.nodes.length === 0) {
         statusEl.textContent = 'no graph yet';
-        nodeDetailEl.textContent = 'No AGE nodes for this case.';
+        emptyEl.classList.remove('hidden');
+        emptyEl.textContent = 'No AGE nodes for this case.';
         return;
       }
+      statusEl.textContent = 'rendered';
 
-      statusEl.textContent = data.nodes.length + ' nodes · ' + data.edges.length + ' edges';
+      data.edges.forEach(function (e) {
+        state.degree[e.from] = (state.degree[e.from] || 0) + 1;
+        state.degree[e.to]   = (state.degree[e.to]   || 0) + 1;
+      });
+      var topPair = Object.entries(state.degree).sort(function (a,b) { return b[1] - a[1]; })[0];
+      if (topPair) {
+        var topNode = data.nodes.find(function (n) { return n.id === topPair[0]; });
+        if (topNode) topDegreeEl.textContent = topNode.label.split('\n')[0].slice(0, 30) + ' (' + topPair[1] + ')';
+      }
 
-      var visNodes = data.nodes.map(function (n) {
+      var groupCounts = {};
+      data.nodes.forEach(function (n) { groupCounts[n.group] = (groupCounts[n.group] || 0) + 1; });
+      Object.keys(groupCounts).forEach(function (g) {
+        state.groupsOn[g] = true;
+        var c = groupColors[g] || { background: '#9b8e80' };
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'filter-chip';
+        chip.dataset.on = '1';
+        chip.dataset.group = g;
+        var dot = document.createElement('span');
+        dot.className = 'legend-dot';
+        dot.style.background = c.background;
+        var name = document.createElement('span'); name.textContent = g;
+        var n = document.createElement('span');
+        n.style.color = 'var(--ink-quiet)';
+        n.style.fontVariantNumeric = 'tabular-nums';
+        n.textContent = groupCounts[g];
+        chip.appendChild(dot); chip.appendChild(name); chip.appendChild(n);
+        chip.addEventListener('click', function () {
+          state.groupsOn[g] = !state.groupsOn[g];
+          chip.dataset.on = state.groupsOn[g] ? '1' : '0';
+          applyFilters();
+        });
+        filterEl.appendChild(chip);
+      });
+
+      state.allNodes = data.nodes.map(function (n) {
         var c = groupColors[n.group] || { background: '#9b8e80', border: '#6e635a' };
+        var trimmed = n.label.split('\n')[0].slice(0, 32);
         return {
-          id:    n.id,
-          label: n.label,
+          id:    n.id, label: trimmed,
+          title: buildTooltip(n),
           group: n.group,
           color: { background: c.background, border: c.border,
                    highlight: { background: c.background, border: c.border } },
-          font:  { color: '#f5f1ea', size: 12, face: 'Inter Tight, system-ui, sans-serif', strokeWidth: 0 },
+          font:  { color: '#f5f1ea', size: 12, face: 'Inter Tight, system-ui, sans-serif' },
           shape: shapeFor(n.group),
-          _props: n.props,
+          _props: n.props, _fullLabel: n.label,
         };
       });
 
-      var visEdges = data.edges.map(function (e) {
+      state.allEdges = data.edges.map(function (e) {
         return {
           id: e.id, from: e.from, to: e.to, label: e.label,
           font:  { color: '#7c6a55', size: 10, face: 'Inter Tight, system-ui, sans-serif',
@@ -131,25 +220,118 @@
         };
       });
 
+      state.nodesDS = new vis.DataSet(state.allNodes);
+      state.edgesDS = new vis.DataSet(state.allEdges);
+      visibleEl.textContent = state.allNodes.length;
+
       var container = document.getElementById('graph-container');
-      var network = new vis.Network(container,
-        { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) },
+      state.network = new vis.Network(container,
+        { nodes: state.nodesDS, edges: state.edgesDS },
         {
-          physics: { enabled: true, stabilization: { iterations: 180 },
-                     barnesHut: { gravitationalConstant: -7500, springLength: 130, springConstant: 0.04 } },
-          interaction: { hover: true, tooltipDelay: 200 },
+          physics: { enabled: true, stabilization: { iterations: 200 },
+                     barnesHut: { gravitationalConstant: -9000, springLength: 140, springConstant: 0.04 } },
+          interaction: { hover: true, tooltipDelay: 150, multiselect: false },
           layout: { improvedLayout: false },
         }
       );
 
-      network.on('click', function (params) {
-        if (!params.nodes.length) return;
+      state.network.on('click', function (params) {
+        if (!params.nodes.length) {
+          focusBtnEl.classList.add('hidden');
+          state.focusedId = null;
+          return;
+        }
         var nodeId = params.nodes[0];
-        var node = visNodes.find(function (n) { return n.id === nodeId; });
-        if (node) showNodeDetail(node, caseId);
+        var node = state.allNodes.find(function (n) { return n.id === nodeId; });
+        if (node) showNodeDetail(node);
+      });
+
+      state.network.on('doubleClick', function (params) {
+        if (!params.nodes.length) return;
+        focusOnNeighborhood(params.nodes[0]);
       });
     })
     .catch(function (err) { statusEl.textContent = 'error: ' + err.message; });
+
+  searchEl.addEventListener('input', function () {
+    state.searchTerm = searchEl.value.trim();
+    applyFilters();
+  });
+
+  document.querySelectorAll('.layout-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.layout-btn').forEach(function (b) { b.dataset.active = '0'; });
+      btn.dataset.active = '1';
+      var layout = btn.dataset.layout;
+      if (!state.network) return;
+      if (layout === 'hierarchical') {
+        state.network.setOptions({
+          layout: { hierarchical: { enabled: true, direction: 'UD', sortMethod: 'directed', nodeSpacing: 120 } },
+          physics: { enabled: false },
+        });
+      } else {
+        state.network.setOptions({
+          layout: { hierarchical: { enabled: false } },
+          physics: { enabled: true, stabilization: { iterations: 200 },
+                     barnesHut: { gravitationalConstant: -9000, springLength: 140 } },
+        });
+      }
+    });
+  });
+
+  document.getElementById('fit-btn').addEventListener('click', function () {
+    if (state.network) state.network.fit({ animation: { duration: 400, easingFunction: 'easeOutQuart' } });
+  });
+  document.getElementById('stabilize-btn').addEventListener('click', function () {
+    if (state.network) state.network.stabilize(120);
+  });
+  document.getElementById('reset-btn').addEventListener('click', function () {
+    searchEl.value = '';
+    state.searchTerm = '';
+    Object.keys(state.groupsOn).forEach(function (g) { state.groupsOn[g] = true; });
+    document.querySelectorAll('.filter-chip').forEach(function (c) { c.dataset.on = '1'; });
+    state.focusedId = null;
+    focusBtnEl.classList.add('hidden');
+    applyFilters();
+  });
+  focusBtnEl.addEventListener('click', function () {
+    if (state.focusedId) focusOnNeighborhood(state.focusedId);
+  });
+
+  function applyFilters() {
+    if (!state.nodesDS) return;
+    var term = state.searchTerm.toLowerCase();
+    var re = null;
+    if (term) { try { re = new RegExp(term, 'i'); } catch (_) { re = null; } }
+    var keptIds = new Set();
+    state.allNodes.forEach(function (n) {
+      var groupOk = state.groupsOn[n.group];
+      var searchOk = !term || (re ? re.test(n._fullLabel) : n._fullLabel.toLowerCase().indexOf(term) >= 0);
+      if (groupOk && searchOk) keptIds.add(n.id);
+    });
+    var nextNodes = state.allNodes.filter(function (n) { return keptIds.has(n.id); });
+    var nextEdges = state.allEdges.filter(function (e) { return keptIds.has(e.from) && keptIds.has(e.to); });
+    state.nodesDS.clear(); state.nodesDS.add(nextNodes);
+    state.edgesDS.clear(); state.edgesDS.add(nextEdges);
+    visibleEl.textContent = nextNodes.length;
+    if (nextNodes.length === 0) emptyEl.classList.remove('hidden');
+    else emptyEl.classList.add('hidden');
+  }
+
+  function focusOnNeighborhood(nodeId) {
+    state.focusedId = nodeId;
+    var keep = new Set([nodeId]);
+    state.allEdges.forEach(function (e) {
+      if (e.from === nodeId) keep.add(e.to);
+      if (e.to === nodeId)   keep.add(e.from);
+    });
+    var nextNodes = state.allNodes.filter(function (n) { return keep.has(n.id) && state.groupsOn[n.group]; });
+    var nextEdges = state.allEdges.filter(function (e) { return keep.has(e.from) && keep.has(e.to); });
+    state.nodesDS.clear(); state.nodesDS.add(nextNodes);
+    state.edgesDS.clear(); state.edgesDS.add(nextEdges);
+    visibleEl.textContent = nextNodes.length;
+    state.network.fit({ nodes: Array.from(keep), animation: { duration: 400, easingFunction: 'easeOutQuart' } });
+  }
 
   function shapeFor(group) {
     switch (group) {
@@ -163,7 +345,20 @@
     }
   }
 
-  function showNodeDetail(node, caseId) {
+  function buildTooltip(n) {
+    var lines = [n.group, n.label.split('\n')[0]];
+    if (n.props && typeof n.props === 'object') {
+      Object.keys(n.props).slice(0, 4).forEach(function (k) {
+        var v = String(n.props[k] || '').slice(0, 40);
+        if (v) lines.push(k + ': ' + v);
+      });
+    }
+    return lines.join('\n');
+  }
+
+  function showNodeDetail(node) {
+    state.focusedId = node.id;
+    focusBtnEl.classList.remove('hidden');
     while (nodeDetailEl.firstChild) nodeDetailEl.removeChild(nodeDetailEl.firstChild);
     nodeDetailEl.style.fontStyle = '';
     nodeDetailEl.style.fontFamily = '';
@@ -176,82 +371,94 @@
     var label = document.createElement('div');
     label.className = 'id-mono mt-2 break-all';
     label.style.color = 'var(--ink)';
-    label.textContent = String(node.label).replace(/\n/g, ' ');
+    label.textContent = String(node._fullLabel).replace(/\n/g, ' ');
     nodeDetailEl.appendChild(label);
 
+    if (node._props && typeof node._props === 'object') {
+      var dl = document.createElement('dl');
+      dl.className = 'mt-3 space-y-0.5 text-[11.5px]';
+      Object.keys(node._props).forEach(function (k) {
+        var v = String(node._props[k] || '');
+        if (!v) return;
+        var wrap = document.createElement('div');
+        wrap.className = 'flex gap-2';
+        var dt = document.createElement('dt');
+        dt.style.color = 'var(--ink-quiet)';
+        dt.style.minWidth = '80px';
+        dt.textContent = k;
+        var dd = document.createElement('dd');
+        dd.className = 'id-mono break-all';
+        dd.style.color = 'var(--ink-soft)';
+        dd.textContent = v.length > 60 ? v.slice(0, 60) + '…' : v;
+        wrap.appendChild(dt); wrap.appendChild(dd);
+        dl.appendChild(wrap);
+      });
+      nodeDetailEl.appendChild(dl);
+    }
+
     var idline = document.createElement('div');
-    idline.className = 'mt-1 text-[11px]';
+    idline.className = 'mt-2 text-[10.5px]';
     idline.style.color = 'var(--ink-quiet)';
     idline.textContent = 'id: ' + node.id;
     nodeDetailEl.appendChild(idline);
 
     while (nodeFindingsEl.firstChild) nodeFindingsEl.removeChild(nodeFindingsEl.firstChild);
     var loading = document.createElement('div');
-    loading.className = 'text-[12px]';
-    loading.style.color = 'var(--ink-quiet)';
+    loading.className = 'text-[12px]'; loading.style.color = 'var(--ink-quiet)';
     loading.textContent = 'Loading related findings…';
     nodeFindingsEl.appendChild(loading);
 
-    var searchTerm = String(node.label).split('\n')[0].replace(/[()]/g, '').trim();
+    var searchTerm = String(node._fullLabel).split('\n')[0].replace(/[()]/g, '').trim();
     fetch('/case/' + caseId + '/graph/node/' + encodeURIComponent(node.id) + '/findings?q=' + encodeURIComponent(searchTerm))
       .then(function (r) { return r.json(); })
       .then(function (findings) {
         while (nodeFindingsEl.firstChild) nodeFindingsEl.removeChild(nodeFindingsEl.firstChild);
         if (!findings.length) {
           var empty = document.createElement('div');
-          empty.className = 'text-[12px]';
-          empty.style.color = 'var(--ink-quiet)';
-          empty.style.fontStyle = 'italic';
-          empty.style.fontFamily = 'var(--font-display)';
+          empty.className = 'text-[12px]'; empty.style.color = 'var(--ink-quiet)';
+          empty.style.fontStyle = 'italic'; empty.style.fontFamily = 'var(--font-display)';
           empty.textContent = 'No related findings.';
-          nodeFindingsEl.appendChild(empty);
-          return;
+          nodeFindingsEl.appendChild(empty); return;
         }
+        var header = document.createElement('div');
+        header.className = 'eyebrow';
+        header.textContent = findings.length + ' related';
+        nodeFindingsEl.appendChild(header);
         findings.forEach(function (f) {
           var card = document.createElement('a');
           card.href = '/finding/' + encodeURIComponent(f.finding_id);
           card.className = 'block surface-flat px-3 py-2.5 text-[12.5px] hover:[border-color:var(--clay)]';
           card.style.color = 'var(--ink-soft)';
-
           var head = document.createElement('div');
-          head.className = 'flex items-center gap-2 mb-1';
+          head.className = 'flex items-center gap-2 mb-1 flex-wrap';
           var cite = document.createElement('span');
-          cite.className = 'cite';
-          cite.style.fontSize = '11px';
+          cite.className = 'cite'; cite.style.fontSize = '11px';
           cite.textContent = f.finding_id;
           head.appendChild(cite);
-
           var statusChip = document.createElement('span');
-          statusChip.className = 'chip ' +
-            (f.validation_status === 'confirmed' ? 'chip-ok' :
-             f.validation_status === 'refuted'   ? 'chip-bad' :
-             f.validation_status === 'inconclusive' ? 'chip-warn' : 'chip-quiet');
+          statusChip.className = 'chip ' + (
+            f.validation_status === 'confirmed' ? 'chip-ok' :
+            f.validation_status === 'refuted'   ? 'chip-bad' :
+            f.validation_status === 'inconclusive' ? 'chip-warn' : 'chip-quiet');
           statusChip.textContent = f.validation_status;
           head.appendChild(statusChip);
-
           var sp = document.createElement('span');
-          sp.className = 'text-[11px]';
-          sp.style.color = 'var(--ink-quiet)';
+          sp.className = 'text-[11px]'; sp.style.color = 'var(--ink-quiet)';
           sp.textContent = f.specialist;
           head.appendChild(sp);
-
           card.appendChild(head);
-
           var body = document.createElement('div');
-          body.style.color = 'var(--ink-mute)';
-          body.style.lineHeight = '1.4';
+          body.style.color = 'var(--ink-mute)'; body.style.lineHeight = '1.4';
           var text = String(f.claim);
-          body.textContent = text.length > 110 ? text.substring(0, 110) + '…' : text;
+          body.textContent = text.length > 110 ? text.slice(0, 110) + '…' : text;
           card.appendChild(body);
-
           nodeFindingsEl.appendChild(card);
         });
       })
       .catch(function () {
         while (nodeFindingsEl.firstChild) nodeFindingsEl.removeChild(nodeFindingsEl.firstChild);
         var err = document.createElement('div');
-        err.className = 'text-[12px]';
-        err.style.color = 'var(--bad)';
+        err.className = 'text-[12px]'; err.style.color = 'var(--bad)';
         err.textContent = 'Error loading findings.';
         nodeFindingsEl.appendChild(err);
       });
