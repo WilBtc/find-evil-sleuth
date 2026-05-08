@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="10" fill="#0b1410"/>
+  <circle cx="26" cy="26" r="14" fill="none" stroke="#22c55e" stroke-width="4"/>
+  <line x1="36" y1="36" x2="54" y2="54" stroke="#22c55e" stroke-width="6" stroke-linecap="round"/>
+  <text x="32" y="59" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="#22c55e" font-weight="700">FE</text>
+</svg>
