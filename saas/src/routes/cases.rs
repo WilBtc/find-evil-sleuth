@@ -98,3 +98,205 @@ pub async fn cases_list_partial(State(state): State<AppState>) -> Html<String> {
         .unwrap_or_else(|e| format!("<pre>template error: {e}</pre>"));
     Html(body)
 }
+
+// ── POST /cases/new — create case + optionally launch ADW ──────────
+
+#[derive(Debug, Deserialize)]
+pub struct NewCaseReq {
+    /// Slug-style name. Becomes the case_id and the directory name.
+    pub case_id: String,
+    /// Free-form display name. Defaults to case_id when empty.
+    pub name:    Option<String>,
+    /// "empty"        — create dir + cases row, do nothing else.
+    /// "investigate"  — create dir + spawn ./scripts/investigate.sh in background.
+    /// "fetch_lonewolf"— spawn ./scripts/fetch-evidence.sh lone-wolf in background,
+    ///                   then chain into investigate after fetch completes.
+    pub mode:    String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NewCaseResp {
+    pub case_id:     String,
+    pub redirect_to: String,
+    pub log_path:    Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NewCaseErr {
+    pub error: String,
+}
+
+/// Validate slug: 1..64 chars of [a-zA-Z0-9_-], no path traversal.
+fn valid_slug(s: &str) -> bool {
+    !s.is_empty()
+        && s.len() <= 64
+        && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+pub async fn new_case(
+    State(state): State<AppState>,
+    Json(req): Json<NewCaseReq>,
+) -> Result<Json<NewCaseResp>, (StatusCode, Json<NewCaseErr>)> {
+    if !valid_slug(&req.case_id) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(NewCaseErr { error: "case_id must be 1–64 chars of [A-Za-z0-9_-]".into() }),
+        ));
+    }
+    let mode = req.mode.as_str();
+    if !matches!(mode, "empty" | "investigate" | "fetch_lonewolf") {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(NewCaseErr { error: format!("unknown mode: {}", mode) }),
+        ));
+    }
+
+    let display_name = req.name.unwrap_or_else(|| req.case_id.clone());
+
+    // Workspace root = parent of saas/ (CARGO_MANIFEST_DIR is saas/)
+    let repo_root: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| PathBuf::from("."));
+
+    let case_dir = repo_root.join("cases").join(&req.case_id);
+    if let Err(e) = std::fs::create_dir_all(&case_dir) {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(NewCaseErr { error: format!("mkdir {}: {}", case_dir.display(), e) }),
+        ));
+    }
+
+    // INSERT cases row (idempotent: ON CONFLICT DO NOTHING; UI surfaces a
+    // "case already exists" via the duplicate row).
+    let inserted = sqlx::query(
+        r#"INSERT INTO cases (case_id, name, status)
+           VALUES ($1, $2, 'pending')
+           ON CONFLICT (case_id) DO NOTHING
+           RETURNING case_id"#,
+    )
+    .bind(&req.case_id)
+    .bind(&display_name)
+    .fetch_optional(&state.pool)
+    .await;
+
+    if let Err(e) = inserted {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(NewCaseErr { error: format!("db insert: {}", e) }),
+        ));
+    }
+
+    // Spawn ADW driver as detached background process. Logs to logs/cases/<id>.log
+    let log_dir = repo_root.join("logs").join("cases");
+    let _ = std::fs::create_dir_all(&log_dir);
+    let log_path = log_dir.join(format!("{}.log", &req.case_id));
+    let log_path_str = log_path.display().to_string();
+
+    let mut log_path_resp = None;
+
+    match mode {
+        "empty" => {
+            // Just leave the case as 'pending'. User drops evidence, runs
+            // investigate.sh from terminal when ready.
+        }
+        "investigate" => {
+            log_path_resp = Some(log_path_str.clone());
+            spawn_adw(&repo_root, &case_dir, &log_path)
+                .map_err(|e| (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(NewCaseErr { error: format!("spawn investigate.sh: {}", e) }),
+                ))?;
+            let _ = sqlx::query("UPDATE cases SET status='running' WHERE case_id=$1")
+                .bind(&req.case_id)
+                .execute(&state.pool).await;
+        }
+        "fetch_lonewolf" => {
+            log_path_resp = Some(log_path_str.clone());
+            spawn_fetch_then_investigate(&repo_root, &case_dir, &log_path)
+                .map_err(|e| (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(NewCaseErr { error: format!("spawn fetch+investigate: {}", e) }),
+                ))?;
+            let _ = sqlx::query("UPDATE cases SET status='running' WHERE case_id=$1")
+                .bind(&req.case_id)
+                .execute(&state.pool).await;
+        }
+        _ => unreachable!(),
+    }
+
+    Ok(Json(NewCaseResp {
+        case_id:     req.case_id.clone(),
+        redirect_to: format!("/case/{}", &req.case_id),
+        log_path:    log_path_resp,
+    }))
+}
+
+fn spawn_adw(repo_root: &PathBuf, case_dir: &PathBuf, log_path: &PathBuf) -> std::io::Result<()> {
+    let log = std::fs::OpenOptions::new()
+        .create(true).append(true).open(log_path)?;
+    let log_err = log.try_clone()?;
+
+    Command::new("setsid")
+        .arg("./scripts/investigate.sh")
+        .arg(case_dir)
+        .current_dir(repo_root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(log))
+        .stderr(Stdio::from(log_err))
+        .spawn()
+        .map(|_| ())
+}
+
+fn spawn_fetch_then_investigate(
+    repo_root: &PathBuf,
+    case_dir: &PathBuf,
+    log_path: &PathBuf,
+) -> std::io::Result<()> {
+    let log = std::fs::OpenOptions::new()
+        .create(true).append(true).open(log_path)?;
+    let log_err = log.try_clone()?;
+
+    // Chain: fetch then investigate, in a detached shell.
+    let case_dir_str = case_dir.display().to_string();
+    let cmd = format!(
+        "./scripts/fetch-evidence.sh lone-wolf && \
+         cp -r evidence-samples/lone-wolf/* {dst}/ && \
+         ./scripts/investigate.sh {dst}",
+        dst = case_dir_str,
+    );
+
+    Command::new("setsid")
+        .arg("bash").arg("-c").arg(cmd)
+        .current_dir(repo_root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(log))
+        .stderr(Stdio::from(log_err))
+        .spawn()
+        .map(|_| ())
+}
+
+// ── GET /case/:id/log — tail the spawned-job log for live updates ──
+
+use axum::extract::Path;
+
+pub async fn case_log_tail(
+    State(_state): State<AppState>,
+    Path(case_id): Path<String>,
+) -> (StatusCode, String) {
+    if !valid_slug(&case_id) {
+        return (StatusCode::BAD_REQUEST, "invalid case_id".into());
+    }
+    let repo_root: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."));
+    let log_path = repo_root.join("logs").join("cases").join(format!("{}.log", case_id));
+    match std::fs::read_to_string(&log_path) {
+        Ok(s) => {
+            // Return last 8 KB.
+            let n = s.len();
+            let start = n.saturating_sub(8 * 1024);
+            (StatusCode::OK, s[start..].to_string())
+        }
+        Err(_) => (StatusCode::OK, String::from("(no log yet)")),
+    }
+}
