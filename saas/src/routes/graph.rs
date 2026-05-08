@@ -220,10 +220,10 @@ pub async fn node_findings(
         return Json(Vec::new());
     }
 
-    // Fuzzy match: pg_trgm similarity on claim + substring fallback against
-    // tool_calls.args (the agent's invocation often contains the path/name).
-    let rows: Vec<FindingRef> = sqlx::query_as::<_, (String, String, String, String)>(
-        r#"
+    // Fuzzy match: try same-case first, then fall back to ALL cases. The
+    // AGE graph and findings sometimes live under different case_ids when
+    // multiple ralph runs split the same evidence across case rows.
+    let scoped_sql = r#"
         WITH matches AS (
           SELECT f.finding_id, f.claim, f.specialist, f.validation_status,
                  GREATEST(
@@ -234,32 +234,54 @@ pub async fn node_findings(
           WHERE f.case_id = $1
             AND ( f.claim ILIKE '%' || $2 || '%'
                   OR similarity(f.claim, $2) > 0.18
-                  OR EXISTS (
-                       SELECT 1 FROM tool_calls tc
-                       WHERE tc.tool_call_id = f.tool_call_id
-                         AND tc.args::text ILIKE '%' || $2 || '%'
-                  )
-                )
+                  OR EXISTS (SELECT 1 FROM tool_calls tc
+                             WHERE tc.tool_call_id = f.tool_call_id
+                               AND tc.args::text ILIKE '%' || $2 || '%') )
         )
         SELECT finding_id, claim, specialist, validation_status
           FROM matches
          ORDER BY score DESC, finding_id ASC
          LIMIT 25
-        "#,
-    )
-    .bind(&case_id)
-    .bind(&search)
-    .fetch_all(&state.pool)
-    .await
-    .unwrap_or_default()
-    .into_iter()
-    .map(|(finding_id, claim, specialist, validation_status)| FindingRef {
-        finding_id,
-        claim,
-        specialist,
-        validation_status,
-    })
-    .collect();
+    "#;
+
+    let mut rows: Vec<FindingRef> = sqlx::query_as::<_, (String, String, String, String)>(scoped_sql)
+        .bind(&case_id).bind(&search)
+        .fetch_all(&state.pool).await.unwrap_or_default()
+        .into_iter()
+        .map(|(finding_id, claim, specialist, validation_status)| FindingRef {
+            finding_id, claim, specialist, validation_status,
+        })
+        .collect();
+
+    if rows.is_empty() {
+        let any_case_sql = r#"
+            WITH matches AS (
+              SELECT f.finding_id, f.claim, f.specialist, f.validation_status,
+                     GREATEST(
+                       similarity(f.claim, $1),
+                       CASE WHEN f.claim ILIKE '%' || $1 || '%' THEN 0.6 ELSE 0 END
+                     ) AS score
+              FROM findings f
+              WHERE ( f.claim ILIKE '%' || $1 || '%'
+                      OR similarity(f.claim, $1) > 0.22
+                      OR EXISTS (SELECT 1 FROM tool_calls tc
+                                 WHERE tc.tool_call_id = f.tool_call_id
+                                   AND tc.args::text ILIKE '%' || $1 || '%') )
+            )
+            SELECT finding_id, claim, specialist, validation_status
+              FROM matches
+             ORDER BY score DESC, finding_id ASC
+             LIMIT 25
+        "#;
+        rows = sqlx::query_as::<_, (String, String, String, String)>(any_case_sql)
+            .bind(&search)
+            .fetch_all(&state.pool).await.unwrap_or_default()
+            .into_iter()
+            .map(|(finding_id, claim, specialist, validation_status)| FindingRef {
+                finding_id, claim, specialist, validation_status,
+            })
+            .collect();
+    }
 
     Json(rows)
 }
