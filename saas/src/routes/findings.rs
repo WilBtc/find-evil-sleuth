@@ -238,6 +238,75 @@ pub async fn finding_detail(
     Html(body)
 }
 
+/// HTMX side-drawer fragment for a finding. Same data as `finding_detail`
+/// but a compact template that renders into `#drawer-host`.
+pub async fn finding_drawer(
+    State(state): State<AppState>,
+    Path(finding_id): Path<String>,
+) -> Html<String> {
+    let finding = sqlx::query_as::<_, FindingDetail>(
+        r#"SELECT finding_id, case_id, specialist, claim, confidence,
+                  validation_status, mitre_technique, created_at,
+                  last_validated_at, superseded_by,
+                  tool_call_id::text, byte_offset
+           FROM findings WHERE finding_id = $1"#,
+    )
+    .bind(&finding_id)
+    .fetch_optional(&state.pool)
+    .await;
+
+    let finding = match finding {
+        Ok(Some(f)) => f,
+        Ok(None) => {
+            return Html(format!(
+                "<div class=\"drawer-backdrop\"></div><aside class=\"drawer-panel p-8\">Finding {} not found.</aside>",
+                html_escape(&finding_id)
+            ));
+        }
+        Err(e) => return Html(format!("<pre>DB error: {e}</pre>")),
+    };
+
+    let tool_call = sqlx::query_as::<_, ToolCallDetail>(
+        r#"SELECT tool_call_id::text, tool, args, exit_code, duration_ms,
+                  started_at, finished_at, is_validation
+           FROM tool_calls WHERE tool_call_id = $1::uuid"#,
+    )
+    .bind(&finding.tool_call_id)
+    .fetch_optional(&state.pool)
+    .await
+    .unwrap_or(None);
+
+    let validation_runs = sqlx::query_as::<_, ValidationRunRow>(
+        r#"SELECT run_id::text, started_at, result, diff
+           FROM validation_runs WHERE finding_id = $1
+           ORDER BY started_at DESC"#,
+    )
+    .bind(&finding_id)
+    .fetch_all(&state.pool)
+    .await
+    .unwrap_or_default();
+
+    let args_json = tool_call.as_ref().map(|tc| {
+        serde_json::to_string_pretty(&tc.args).unwrap_or_default()
+    });
+
+    let cite_json = build_cite_json(&finding, tool_call.as_ref(), &validation_runs);
+    let cite_json_str = serde_json::to_string_pretty(&cite_json).unwrap_or_default();
+
+    let mut ctx = tera::Context::new();
+    ctx.insert("finding",         &finding);
+    ctx.insert("tool_call",       &tool_call);
+    ctx.insert("validation_runs", &validation_runs);
+    ctx.insert("args_json",       &args_json);
+    ctx.insert("cite_json",       &cite_json_str);
+
+    let body = state
+        .tera
+        .render("findings_drawer.html", &ctx)
+        .unwrap_or_else(|e| format!("<pre>template error: {e}</pre>"));
+    Html(body)
+}
+
 fn build_cite_json(
     f: &FindingDetail,
     tc: Option<&ToolCallDetail>,
