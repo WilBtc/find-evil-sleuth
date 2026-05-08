@@ -207,9 +207,9 @@ pub async fn new_case(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(NewCaseErr { error: format!("spawn investigate.sh: {}", e) }),
                 ))?;
-            let _ = sqlx::query("UPDATE cases SET status='running' WHERE case_id=$1")
-                .bind(&req.case_id)
-                .execute(&state.pool).await;
+            // intentionally NOT setting status='running' here — investigate.py
+            // owns the state machine; flipping it pre-spawn confuses the
+            // resume path.
         }
         "fetch_lonewolf" => {
             log_path_resp = Some(log_path_str.clone());
@@ -218,9 +218,9 @@ pub async fn new_case(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(NewCaseErr { error: format!("spawn fetch+investigate: {}", e) }),
                 ))?;
-            let _ = sqlx::query("UPDATE cases SET status='running' WHERE case_id=$1")
-                .bind(&req.case_id)
-                .execute(&state.pool).await;
+            // intentionally NOT setting status='running' here — investigate.py
+            // owns the state machine; flipping it pre-spawn confuses the
+            // resume path.
         }
         _ => unreachable!(),
     }
