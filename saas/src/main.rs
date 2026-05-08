@@ -49,6 +49,7 @@ async fn main() -> Result<()> {
         .route("/case/:id/events", get(routes::case_events))
         .route("/case/:id/findings", get(routes::findings_list))
         .route("/finding/:fid", get(routes::finding_detail))
+        .route("/finding/:fid/drawer", get(routes::finding_drawer))
         .route("/case/:id/graph", get(routes::graph_page))
         .route("/case/:id/graph/data", get(routes::graph_data))
         .route("/case/:id/graph/node/:nid/findings", get(routes::node_findings))
