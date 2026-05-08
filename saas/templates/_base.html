@@ -1,33 +1,45 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-950 text-gray-100">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}find-evil-sleuth inspector{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
   <link rel="stylesheet" href="/static/styles.css" />
   <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
 </head>
-<body class="h-full flex flex-col font-mono">
+<body class="min-h-full">
 
-  <nav class="bg-gray-900 border-b border-green-700 px-6 py-3 flex items-center gap-8">
-    <span class="text-green-400 font-bold tracking-wider text-lg">&#x25B6; find-evil-sleuth</span>
-    <a href="/" class="text-gray-300 hover:text-green-400 transition-colors">Cases</a>
-    <a href="/console" class="text-gray-300 hover:text-green-400 transition-colors">Console</a>
-  </nav>
-
-  <main class="flex-1 overflow-auto p-6">
-    {% block content %}
-    <div class="text-green-400">
-      <p class="text-xl font-bold mb-2">Inspector SaaS — online</p>
-      <p class="text-gray-400 text-sm">Select a case from the <a href="/" class="text-green-400 underline">Cases</a> list or query the <a href="/console" class="text-green-400 underline">Console</a>.</p>
+  <header class="border-b" style="border-color: var(--line-soft);">
+    <div class="max-w-[1240px] mx-auto px-8 py-5 flex items-baseline justify-between">
+      <a href="/" class="flex items-baseline gap-3" style="text-decoration: none;">
+        <span class="display text-[22px]" style="color: var(--clay-deep);">find-evil-sleuth</span>
+        <span class="eyebrow" style="color: var(--ink-quiet);">Inspector</span>
+      </a>
+      <nav class="flex items-center gap-6 text-[13px]">
+        <a href="/" style="color: var(--ink-soft);" class="hover:[color:var(--ink)]">Cases</a>
+        <a href="/console" style="color: var(--ink-soft);" class="hover:[color:var(--ink)]">SQL Console</a>
+      </nav>
     </div>
-    {% endblock %}
+  </header>
+
+  <main class="max-w-[1240px] mx-auto px-8 py-10">
+    {% block content %}{% endblock %}
   </main>
 
-  <footer class="bg-gray-900 border-t border-gray-800 px-6 py-2 text-xs text-gray-600 flex justify-between">
-    <span>find-evil-sleuth &mdash; SANS Hackathon 2026</span>
-    <span>port 8932</span>
+  <div id="drawer-host"></div>
+
+  <footer class="mt-24 border-t" style="border-color: var(--line-soft);">
+    <div class="max-w-[1240px] mx-auto px-8 py-5 flex items-center justify-between text-[12px]"
+         style="color: var(--ink-quiet);">
+      <span>find-evil-sleuth &middot; SANS DFIR Hackathon 2026</span>
+      <span class="id-mono">port 8932</span>
+    </div>
   </footer>
 
 </body>
