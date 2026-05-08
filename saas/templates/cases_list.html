@@ -88,4 +88,140 @@
   {% endif %}
 </section>
 
+{# ─── New-case modal ────────────────────────────────────────────── #}
+<div id="new-case-modal" class="hidden fixed inset-0 z-40 flex items-center justify-center"
+     style="background: color-mix(in oklch, var(--ink) 28%, transparent); backdrop-filter: blur(2px);">
+  <div class="surface w-full max-w-[520px] mx-4 p-7" role="dialog" aria-modal="true" aria-labelledby="new-case-title">
+    <header class="flex items-baseline justify-between mb-5">
+      <h3 id="new-case-title" class="display text-[22px]">New investigation</h3>
+      <button type="button" id="close-new-case"
+              class="text-[18px]" style="color: var(--ink-quiet);" aria-label="Close">×</button>
+    </header>
+
+    <form id="new-case-form" class="space-y-5">
+      <label class="block">
+        <span class="eyebrow mb-2 block">Case ID (slug)</span>
+        <input id="case-id-input" name="case_id" type="text"
+               required maxlength="64" pattern="[A-Za-z0-9_-]+"
+               class="w-full text-[14px] px-3 py-2 rounded border bg-transparent outline-none"
+               style="border-color: var(--line); color: var(--ink); font-family: var(--font-mono);"
+               placeholder="lone-wolf-2026-06-13" />
+        <span class="text-[11.5px] mt-1 block" style="color: var(--ink-quiet);">
+          Letters, digits, dashes, underscores. Used as the directory name.
+        </span>
+      </label>
+
+      <label class="block">
+        <span class="eyebrow mb-2 block">Display name <span style="color: var(--ink-quiet); text-transform: none; letter-spacing: 0;">(optional)</span></span>
+        <input id="case-name-input" name="name" type="text"
+               class="w-full text-[14px] px-3 py-2 rounded border bg-transparent outline-none"
+               style="border-color: var(--line); color: var(--ink);"
+               placeholder="LoneWolf 2018 — full investigation" />
+      </label>
+
+      <fieldset class="space-y-2">
+        <legend class="eyebrow mb-2">Mode</legend>
+
+        <label class="flex items-start gap-3 cursor-pointer surface-flat px-4 py-3" style="border-color: var(--line);">
+          <input type="radio" name="mode" value="empty" checked />
+          <span>
+            <span class="text-[14px] block" style="color: var(--ink);">Empty case</span>
+            <span class="text-[12px]" style="color: var(--ink-quiet);">
+              Create the row + dir under <code class="id-mono">cases/&lt;id&gt;/</code>. You drop evidence and run <code class="id-mono">./scripts/investigate.sh</code> from the terminal when ready.
+            </span>
+          </span>
+        </label>
+
+        <label class="flex items-start gap-3 cursor-pointer surface-flat px-4 py-3" style="border-color: var(--line);">
+          <input type="radio" name="mode" value="investigate" />
+          <span>
+            <span class="text-[14px] block" style="color: var(--ink);">Investigate now</span>
+            <span class="text-[12px]" style="color: var(--ink-quiet);">
+              Spawn the ADW driver immediately. Use this when you've already placed evidence in <code class="id-mono">cases/&lt;id&gt;/</code> via SCP or terminal.
+            </span>
+          </span>
+        </label>
+
+        <label class="flex items-start gap-3 cursor-pointer surface-flat px-4 py-3" style="border-color: var(--line);">
+          <input type="radio" name="mode" value="fetch_lonewolf" />
+          <span>
+            <span class="text-[14px] block" style="color: var(--ink);">Fetch SANS LoneWolf + investigate</span>
+            <span class="text-[12px]" style="color: var(--ink-quiet);">
+              Pulls the public LoneWolf (~30 GB) from digitalcorpora into this case, then runs the full ADW. Long.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
+      <div id="new-case-error" class="hidden text-[12.5px]" style="color: var(--bad); font-family: var(--font-mono); white-space: pre-wrap;"></div>
+
+      <div class="flex items-center justify-between hairline pt-4">
+        <span class="text-[11.5px]" style="color: var(--ink-quiet);">Tail the log via <span class="id-mono">/case/&lt;id&gt;/log</span>.</span>
+        <div class="flex gap-2">
+          <button type="button" id="cancel-new-case" class="btn btn-ghost">Cancel</button>
+          <button type="submit" id="submit-new-case" class="btn btn-primary">Create</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modal    = document.getElementById('new-case-modal');
+  var openBtn  = document.getElementById('open-new-case');
+  var closeBtn = document.getElementById('close-new-case');
+  var cancelBtn= document.getElementById('cancel-new-case');
+  var form     = document.getElementById('new-case-form');
+  var errEl    = document.getElementById('new-case-error');
+  var submit   = document.getElementById('submit-new-case');
+
+  function show() { modal.classList.remove('hidden'); document.getElementById('case-id-input').focus(); }
+  function hide() { modal.classList.add('hidden'); errEl.classList.add('hidden'); errEl.textContent = ''; }
+
+  openBtn.addEventListener('click', show);
+  closeBtn.addEventListener('click', hide);
+  cancelBtn.addEventListener('click', hide);
+  modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) hide();
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    submit.disabled = true;
+    submit.textContent = 'Creating…';
+    errEl.classList.add('hidden');
+
+    var fd = new FormData(form);
+    var body = {
+      case_id: String(fd.get('case_id') || '').trim(),
+      name:    String(fd.get('name')    || '').trim() || null,
+      mode:    String(fd.get('mode')    || 'empty'),
+    };
+    try {
+      var resp = await fetch('/cases/new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await resp.json();
+      if (!resp.ok) {
+        errEl.textContent = data.error || ('HTTP ' + resp.status);
+        errEl.classList.remove('hidden');
+        submit.disabled = false;
+        submit.textContent = 'Create';
+        return;
+      }
+      window.location.href = data.redirect_to;
+    } catch (err) {
+      errEl.textContent = 'Network error: ' + err;
+      errEl.classList.remove('hidden');
+      submit.disabled = false;
+      submit.textContent = 'Create';
+    }
+  });
+})();
+</script>
+
 {% endblock %}
