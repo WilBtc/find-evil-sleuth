@@ -22,7 +22,7 @@ set -euo pipefail
 
 GUARD_MULT="${GUARD_MULT:-4}"
 GUARD_MIN_AGE="${GUARD_MIN_AGE:-120}"
-GUARD_NEVER_KILL="${GUARD_NEVER_KILL:-^/usr/lib/systemd|^/usr/sbin/sshd|^/usr/bin/dockerd|tailscaled|postgres|^kworker|^/usr/sbin/cron|^/sbin/init|^/usr/lib/postgresql}"
+GUARD_NEVER_KILL="${GUARD_NEVER_KILL:-^/usr/lib/systemd|^/usr/sbin/sshd|^/usr/bin/dockerd|tailscaled|jarvis|claude|postgres|^kworker|^/usr/sbin/cron|^/sbin/init|^/usr/lib/postgresql|sleuth-saas}"
 
 ncpu=$(nproc)
 threshold=${GUARD_THRESHOLD:-$(( ncpu * GUARD_MULT ))}
