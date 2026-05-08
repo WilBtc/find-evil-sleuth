@@ -1,3 +1,223 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────
+   find-evil-sleuth · Claude-applied-to-forensics
+   Warm cream surfaces, clay accents, editorial rhythm.
+   No dark mode, no neon, no gradient metrics.
+   ───────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    /* Surfaces — warm, slightly green-tinted neutrals */
+    --bg:        oklch(98% 0.012 75);
+    --bg-soft:   oklch(96% 0.014 75);
+    --bg-sunken: oklch(94% 0.015 75);
+    --line:      oklch(89% 0.014 70);
+    --line-soft: oklch(93% 0.012 70);
+
+    /* Type — warm near-blacks and graded grays */
+    --ink:       oklch(22% 0.014 55);
+    --ink-soft:  oklch(36% 0.014 55);
+    --ink-mute:  oklch(52% 0.014 55);
+    --ink-quiet: oklch(64% 0.012 60);
+
+    /* Brand — clay/sepia accent (Claude-ish) */
+    --clay:      oklch(65% 0.135 48);
+    --clay-deep: oklch(54% 0.155 45);
+    --clay-soft: oklch(94% 0.040 60);
+
+    /* Semantic — desaturated, editorial */
+    --ok:        oklch(56% 0.090 155);
+    --ok-soft:   oklch(94% 0.035 155);
+    --warn:      oklch(64% 0.110 80);
+    --warn-soft: oklch(95% 0.045 80);
+    --bad:       oklch(56% 0.130 22);
+    --bad-soft:  oklch(95% 0.040 25);
+
+    /* Typography stack */
+    --font-display: "Source Serif 4", "Source Serif Pro", ui-serif, Georgia, serif;
+    --font-sans:    "Inter Tight", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11", "cv02";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    background: var(--bg);
+    color: var(--ink-soft);
+  }
+
+  body { background: var(--bg); color: var(--ink-soft); }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    color: var(--ink);
+    letter-spacing: -0.012em;
+    font-weight: 500;
+  }
+
+  td, th, .tabular { font-variant-numeric: tabular-nums; }
+
+  ::selection { background: var(--clay-soft); color: var(--ink); }
+
+  ::-webkit-scrollbar      { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track{ background: transparent; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-quiet); }
+}
+
+@layer components {
+  .surface       { background: var(--bg-soft);   border: 1px solid var(--line-soft); border-radius: 14px; }
+  .surface-flat  { background: var(--bg);        border: 1px solid var(--line-soft); border-radius: 12px; }
+  .well          { background: var(--bg-sunken); border: 1px solid var(--line);      border-radius: 10px; }
+  .hairline      { border-top: 1px solid var(--line-soft); }
+
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--ink-quiet);
+  }
+  .lede {
+    font-family: var(--font-display);
+    font-size: clamp(20px, 2.4vw, 28px);
+    line-height: 1.35;
+    color: var(--ink);
+    max-width: 60ch;
+    font-weight: 400;
+  }
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 0.96;
+    letter-spacing: -0.022em;
+    color: var(--ink);
+  }
+  .num {
+    font-family: var(--font-display);
+    font-feature-settings: "tnum", "lnum";
+    font-weight: 400;
+    color: var(--ink);
+  }
+  .id-mono {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    letter-spacing: -0.01em;
+    color: var(--ink-soft);
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 14px;
+    font-size: 13px; font-weight: 500;
+    border-radius: 8px;
+    transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: var(--clay); color: oklch(98% 0.01 60);
+    border: 1px solid var(--clay-deep);
+  }
+  .btn-primary:hover { background: var(--clay-deep); }
+  .btn-ghost {
+    background: transparent; color: var(--ink-soft);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover { border-color: var(--ink-quiet); color: var(--ink); }
+  .btn-link {
+    color: var(--clay-deep); border: none; padding: 0; height: auto;
+    text-underline-offset: 3px;
+  }
+  .btn-link:hover { text-decoration: underline; }
+
+  .cite {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono); font-size: 12px;
+    padding: 2px 8px; border-radius: 6px;
+    background: var(--clay-soft); color: var(--clay-deep);
+    border: 1px solid color-mix(in oklch, var(--clay) 30%, transparent);
+    cursor: pointer; transition: all 120ms ease-out;
+  }
+  .cite:hover {
+    background: color-mix(in oklch, var(--clay) 20%, var(--clay-soft));
+    border-color: var(--clay);
+  }
+  .cite::before { content: "›"; opacity: 0.5; font-family: var(--font-sans); }
+
+  .chip {
+    display: inline-flex; align-items: center;
+    height: 22px; padding: 0 9px;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.01em;
+    border-radius: 999px;
+  }
+  .chip-ok       { background: var(--ok-soft);   color: oklch(38% 0.080 150); }
+  .chip-warn     { background: var(--warn-soft); color: oklch(46% 0.110 70); }
+  .chip-bad      { background: var(--bad-soft);  color: oklch(46% 0.140 22); }
+  .chip-quiet    { background: var(--bg-sunken); color: var(--ink-mute); border: 1px solid var(--line); }
+
+  .correction-card {
+    border: 1px solid color-mix(in oklch, var(--warn) 35%, var(--line));
+    background: linear-gradient(180deg, var(--warn-soft), var(--bg-soft));
+    border-radius: 12px;
+    padding: 16px 18px;
+    position: relative;
+  }
+  .correction-card::before {
+    content: ""; position: absolute; left: -1px; top: -1px; bottom: -1px; width: 3px;
+    background: var(--warn); border-radius: 12px 0 0 12px;
+  }
+
+  .drawer-backdrop {
+    position: fixed; inset: 0;
+    background: color-mix(in oklch, var(--ink) 28%, transparent);
+    backdrop-filter: blur(2px);
+    z-index: 40;
+  }
+  .drawer-panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(640px, 100vw);
+    background: var(--bg-soft);
+    border-left: 1px solid var(--line);
+    box-shadow: -16px 0 48px -12px oklch(20% 0.012 60 / 0.10);
+    overflow-y: auto;
+    z-index: 50;
+  }
+
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table thead th {
+    font-family: var(--font-sans); font-weight: 500;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-quiet);
+    padding: 12px 14px; text-align: left;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .data-table tbody td {
+    padding: 12px 14px;
+    font-size: 14px; color: var(--ink-soft);
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:hover { background: color-mix(in oklch, var(--clay) 4%, transparent); }
+  .data-table tbody tr.row-link { cursor: pointer; }
+
+  .empty {
+    padding: 64px 24px;
+    text-align: center;
+    color: var(--ink-mute);
+    font-family: var(--font-display);
+    font-size: 16px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
