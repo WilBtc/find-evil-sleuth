@@ -22,11 +22,12 @@ TAILWIND_BIN="${REPO_ROOT}/bin/tailwindcss"
 if [ -x "${TAILWIND_BIN}" ]; then
     echo "[build-saas] Regenerating Tailwind CSS..."
     mkdir -p "${STATIC_DIR}"
-    "${TAILWIND_BIN}" \
-        --input "${SAAS_DIR}/styles.in.css" \
-        --output "${STATIC_DIR}/styles.css" \
-        --minify
-    echo "[build-saas] styles.css written."
+    # Tailwind v4 auto-discovers content from CWD downward — must run from saas/.
+    ( cd "${SAAS_DIR}" && "${TAILWIND_BIN}" \
+        --input styles.in.css \
+        --output static/styles.css \
+        --minify )
+    echo "[build-saas] styles.css written ($(wc -c < "${STATIC_DIR}/styles.css") bytes)."
 else
     echo "[build-saas] tailwindcss not found at bin/tailwindcss — skipping CSS regen (pre-built styles.css used)."
 fi
