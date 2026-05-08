@@ -45,6 +45,8 @@ async fn main() -> Result<()> {
         )
         .route("/cases", get(routes::cases_list))
         .route("/cases/partial", get(routes::cases_list_partial))
+        .route("/cases/new", post(routes::new_case))
+        .route("/case/:id/log", get(routes::case_log_tail))
         .route("/case/:id", get(routes::case_detail))
         .route("/case/:id/events", get(routes::case_events))
         .route("/case/:id/findings", get(routes::findings_list))
