@@ -1,0 +1,11 @@
+[Unit]
+Description=Run loadguard every 60 seconds
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=60s
+AccuracySec=10s
+Unit=loadguard.service
+
+[Install]
+WantedBy=timers.target
