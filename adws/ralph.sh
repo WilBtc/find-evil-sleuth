@@ -19,6 +19,29 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# ── Singleton: refuse to start if another ralph is already running ─────
+PIDFILE="${RALPH_PIDFILE:-/tmp/ralph.pid}"
+if [[ -f "$PIDFILE" ]]; then
+    other_pid=$(cat "$PIDFILE" 2>/dev/null || echo "")
+    if [[ -n "$other_pid" ]] && kill -0 "$other_pid" 2>/dev/null; then
+        echo "ralph: another instance already running (pid=$other_pid). Refusing to start." >&2
+        exit 1
+    fi
+    rm -f "$PIDFILE"
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
+# ── Load-floor: refuse to start if box is already overloaded ───────────
+ncpu=$(nproc 2>/dev/null || echo 4)
+read -r load1 _ < /proc/loadavg
+load1_int=${load1%.*}
+load_max=$(( ncpu * 2 ))
+if [[ $load1_int -gt $load_max ]]; then
+    echo "ralph: load1=$load1 > 2*ncpu=$load_max. Refusing to start; let the box recover first." >&2
+    exit 1
+fi
+
 ITER=0
 MAX=${RALPH_MAX_ITERATIONS:-20}
 ITER_TIMEOUT=${RALPH_ITER_TIMEOUT_S:-7200}
