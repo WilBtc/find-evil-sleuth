@@ -56,11 +56,13 @@
 </section>
 
 {# ─── Self-correction cards (criterion 1 made loud) ───────────────── #}
-{% if corrections | length > 0 %}
+{% set has_corrections = false %}
+{% for entry in timeline %}{% if entry.kind == "correction" %}{% set_global has_corrections = true %}{% endif %}{% endfor %}
+{% if has_corrections %}
 <section class="mb-12">
   <h2 class="text-[20px] mb-4">Self-corrections</h2>
   <div class="grid gap-4">
-    {% for sc in corrections %}
+    {% for sc in timeline %}{% if sc.kind == "correction" %}
     <article class="correction-card">
       <header class="flex items-start justify-between gap-4 mb-3">
         <div class="flex items-baseline gap-2 flex-wrap">
