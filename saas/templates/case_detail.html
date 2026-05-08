@@ -78,7 +78,6 @@
           <div class="id-mono text-[13px]">{{ sc.failed_tool }}</div>
           <div class="text-[12px] mt-0.5" style="color: var(--bad);">
             exit {{ sc.failed_exit }}
-            {% if sc.stderr_tail %}· <span style="color: var(--ink-quiet);">{{ sc.stderr_tail | truncate(length=80) }}</span>{% endif %}
           </div>
         </div>
         <div class="text-center text-[20px]" style="color: var(--ink-quiet);">→</div>
