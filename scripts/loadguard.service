@@ -1,0 +1,11 @@
+[Unit]
+Description=loadguard — kill highest-CPU non-essential process when load exceeds NCPU*4
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/loadguard.sh
+SuccessExitStatus=0 1
+# Log to journald so `journalctl -t loadguard` shows the history.
+StandardOutput=journal
+StandardError=journal
