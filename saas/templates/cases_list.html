@@ -3,23 +3,67 @@
 {% block title %}Cases — find-evil-sleuth inspector{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-xl font-bold text-green-400">Cases</h1>
-    <span class="text-xs text-gray-500">auto-refreshes every 5s</span>
+
+{# ─── Editorial lead ─────────────────────────────────────────────── #}
+<section class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12 items-start mb-16">
+  <div>
+    <p class="eyebrow mb-4">Investigation Inspector</p>
+    <h1 class="display text-[clamp(40px,5.2vw,64px)] mb-6">
+      Every claim, traceable to its tool call.
+    </h1>
+    <p class="lede">
+      A read-only window into the audit substrate. Pick a case below to walk the timeline,
+      open any <span class="cite" style="cursor:default;">F-NNN</span> for the
+      Merkle-pinned trace, or run your own SQL against the same database the agent uses.
+    </p>
   </div>
 
-  <div class="overflow-x-auto rounded border border-gray-800"
-       id="cases-table-wrapper">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-900 text-gray-400 text-xs uppercase tracking-wider">
+  {% set total_findings = 0 %}{% set total_confirmed = 0 %}{% set total_cases = cases | length %}
+  {% for c in cases %}
+    {% set total_findings = total_findings + c.total %}
+    {% set total_confirmed = total_confirmed + c.confirmed %}
+  {% endfor %}
+
+  <aside class="surface p-6 self-start">
+    <div class="grid grid-cols-2 gap-x-6 gap-y-5">
+      <div>
+        <div class="eyebrow mb-1">Cases</div>
+        <div class="num text-[36px] leading-none">{{ total_cases }}</div>
+      </div>
+      <div>
+        <div class="eyebrow mb-1">Findings</div>
+        <div class="num text-[36px] leading-none">{{ total_findings }}</div>
+      </div>
+      <div class="col-span-2 hairline pt-4">
+        <div class="eyebrow mb-1">Confirmed by validator</div>
+        <div class="flex items-baseline gap-2">
+          <span class="num text-[28px] leading-none" style="color: var(--ok);">{{ total_confirmed }}</span>
+          <span class="text-[12px]" style="color: var(--ink-quiet);">
+            {% if total_findings > 0 %}{{ (total_confirmed * 100) / total_findings }}%{% else %}—{% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</section>
+
+{# ─── Case index ─────────────────────────────────────────────────── #}
+<section>
+  <div class="flex items-baseline justify-between mb-4">
+    <h2 class="text-[20px]">Case index</h2>
+    <span class="eyebrow" style="color: var(--ink-quiet);">refreshes every 5s</span>
+  </div>
+
+  <div class="surface overflow-hidden">
+    <table class="data-table">
+      <thead>
         <tr>
-          <th class="px-4 py-3 text-left">Case ID</th>
-          <th class="px-4 py-3 text-left">Name</th>
-          <th class="px-4 py-3 text-left">Started</th>
-          <th class="px-4 py-3 text-left">Status</th>
-          <th class="px-4 py-3 text-right">Findings</th>
-          <th class="px-4 py-3 text-left">Breakdown</th>
+          <th>Case</th>
+          <th>Started</th>
+          <th>Status</th>
+          <th class="text-right">Findings</th>
+          <th>Validator</th>
+          <th class="w-1"></th>
         </tr>
       </thead>
       <tbody id="cases-tbody"
@@ -33,9 +77,12 @@
   </div>
 
   {% if cases | length == 0 %}
-  <p class="mt-4 text-xs text-gray-600">
-    Run <code class="text-green-500">./scripts/investigate.sh ./cases/&lt;case-dir&gt;/</code> to start an investigation.
-  </p>
+  <div class="empty">
+    No cases recorded yet. Run
+    <span class="id-mono" style="color: var(--clay-deep);">./scripts/investigate.sh cases/&lt;case-dir&gt;/</span>
+    to start one.
+  </div>
   {% endif %}
-</div>
+</section>
+
 {% endblock %}
