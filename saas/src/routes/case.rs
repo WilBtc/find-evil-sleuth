@@ -155,6 +155,12 @@ pub async fn case_events(
     let pool = state.pool.clone();
     let (tx, rx) = mpsc::channel::<Result<Event, Infallible>>(32);
 
+    // Send an immediate "hello" so the browser's EventSource fires onopen
+    // and the UI flips from "connecting…" to "live" right away. Without this,
+    // the connection waits silently for the first NOTIFY which may never come.
+    let _ = tx
+        .try_send(Ok(Event::default().event("hello").data("connected")));
+
     tokio::spawn(async move {
         let mut listener = match sqlx::postgres::PgListener::connect_with(&pool).await {
             Ok(l) => l,
