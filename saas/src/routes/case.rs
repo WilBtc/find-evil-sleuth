@@ -93,8 +93,9 @@ pub async fn case_detail(
             duration_ms,
             is_validation
         FROM tool_calls
-        WHERE case_id = $1
+        WHERE case_id = $1 AND is_validation = false
         ORDER BY started_at ASC
+        LIMIT 200
         "#,
     )
     .bind(&case_id)
