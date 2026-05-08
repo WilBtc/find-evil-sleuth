@@ -220,13 +220,32 @@ pub async fn node_findings(
         return Json(Vec::new());
     }
 
+    // Fuzzy match: pg_trgm similarity on claim + substring fallback against
+    // tool_calls.args (the agent's invocation often contains the path/name).
     let rows: Vec<FindingRef> = sqlx::query_as::<_, (String, String, String, String)>(
-        r#"SELECT finding_id, claim, specialist, validation_status
-           FROM findings
-           WHERE case_id = $1
-             AND claim ILIKE '%' || $2 || '%'
-           ORDER BY finding_id ASC
-           LIMIT 20"#,
+        r#"
+        WITH matches AS (
+          SELECT f.finding_id, f.claim, f.specialist, f.validation_status,
+                 GREATEST(
+                   similarity(f.claim, $2),
+                   CASE WHEN f.claim ILIKE '%' || $2 || '%' THEN 0.6 ELSE 0 END
+                 ) AS score
+          FROM findings f
+          WHERE f.case_id = $1
+            AND ( f.claim ILIKE '%' || $2 || '%'
+                  OR similarity(f.claim, $2) > 0.18
+                  OR EXISTS (
+                       SELECT 1 FROM tool_calls tc
+                       WHERE tc.tool_call_id = f.tool_call_id
+                         AND tc.args::text ILIKE '%' || $2 || '%'
+                  )
+                )
+        )
+        SELECT finding_id, claim, specialist, validation_status
+          FROM matches
+         ORDER BY score DESC, finding_id ASC
+         LIMIT 25
+        "#,
     )
     .bind(&case_id)
     .bind(&search)
