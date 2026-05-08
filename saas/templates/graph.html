@@ -402,6 +402,153 @@
     idline.textContent = 'id: ' + node.id;
     nodeDetailEl.appendChild(idline);
 
+    // ── "Open" toolbar: copy-paste DFIR drill-downs ──────────────
+    var openBar = document.createElement('div');
+    openBar.className = 'mt-3 hairline pt-3 flex flex-col gap-1.5';
+    var openLabel = document.createElement('div');
+    openLabel.className = 'eyebrow';
+    openLabel.textContent = 'Open in';
+    openBar.appendChild(openLabel);
+
+    var primaryTerm = String(node._fullLabel).split('\n')
+      .map(function(s){return s.trim();})
+      .filter(function(s){return s && s !== node.group;})[0] || '';
+    var safeTerm = primaryTerm.replace(/'/g, "''");
+
+    function actionLink(label, hint, onClick) {
+      var a = document.createElement('a');
+      a.href = '#'; a.className = 'btn-link text-[12px]';
+      a.style.padding = '0';
+      a.textContent = label;
+      a.title = hint;
+      a.addEventListener('click', function (e) { e.preventDefault(); onClick(); });
+      var wrap = document.createElement('div');
+      wrap.className = 'flex items-baseline gap-2';
+      wrap.appendChild(a);
+      var s = document.createElement('span');
+      s.className = 'text-[10.5px]';
+      s.style.color = 'var(--ink-quiet)';
+      s.textContent = hint;
+      wrap.appendChild(s);
+      return wrap;
+    }
+
+    function sqlConsoleHref(sql) {
+      return '/console#' + encodeURIComponent(sql);
+    }
+
+    var sqlAllFindings =
+      "SELECT finding_id, specialist, validation_status, claim FROM findings " +
+      "WHERE case_id='" + caseId + "' AND (claim ILIKE '%" + safeTerm + "%' " +
+      "OR similarity(claim,'" + safeTerm + "') > 0.18) " +
+      "ORDER BY validation_status,finding_id LIMIT 50;";
+    var sqlToolCalls =
+      "SELECT started_at, tool, exit_code, duration_ms, args FROM tool_calls " +
+      "WHERE case_id='" + caseId + "' AND args::text ILIKE '%" + safeTerm + "%' " +
+      "ORDER BY started_at LIMIT 50;";
+    var sqlMitre =
+      "SELECT mitre_technique, count(*) FROM findings " +
+      "WHERE case_id='" + caseId + "' AND mitre_technique IS NOT NULL " +
+      "AND (claim ILIKE '%" + safeTerm + "%' OR similarity(claim,'" + safeTerm + "') > 0.18) " +
+      "GROUP BY 1 ORDER BY 2 DESC;";
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(function () {
+        flashStatus('copied');
+      }, function () { flashStatus('copy failed'); });
+    }
+    var statusFlash = document.createElement('div');
+    statusFlash.className = 'text-[10.5px] mt-1';
+    statusFlash.style.color = 'var(--clay-deep)';
+    function flashStatus(t) {
+      statusFlash.textContent = t;
+      setTimeout(function () { statusFlash.textContent = ''; }, 1400);
+    }
+
+    // Open all-findings SQL in console
+    var aFindings = document.createElement('a');
+    aFindings.href = sqlConsoleHref(sqlAllFindings);
+    aFindings.target = '_self';
+    aFindings.className = 'btn-link text-[12px]';
+    aFindings.style.padding = '0';
+    aFindings.textContent = 'SQL Console → all matching findings';
+    openBar.appendChild(aFindings);
+
+    var aTcalls = document.createElement('a');
+    aTcalls.href = sqlConsoleHref(sqlToolCalls);
+    aTcalls.target = '_self';
+    aTcalls.className = 'btn-link text-[12px]';
+    aTcalls.style.padding = '0';
+    aTcalls.textContent = 'SQL Console → tool calls referencing this';
+    openBar.appendChild(aTcalls);
+
+    var aMitre = document.createElement('a');
+    aMitre.href = sqlConsoleHref(sqlMitre);
+    aMitre.target = '_self';
+    aMitre.className = 'btn-link text-[12px]';
+    aMitre.style.padding = '0';
+    aMitre.textContent = 'SQL Console → MITRE technique breakdown';
+    openBar.appendChild(aMitre);
+
+    // Copy CLI commands for terminal users
+    var cliWrap = document.createElement('div');
+    cliWrap.className = 'mt-2';
+    var cliLabel = document.createElement('div');
+    cliLabel.className = 'eyebrow';
+    cliLabel.textContent = 'Copy CLI';
+    cliWrap.appendChild(cliLabel);
+
+    var fileCarveBtn = document.createElement('a');
+    fileCarveBtn.href = '#'; fileCarveBtn.className = 'btn-link text-[12px]';
+    fileCarveBtn.style.padding = '0';
+    fileCarveBtn.textContent = '$ es search "' + primaryTerm + '"';
+    fileCarveBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      copyToClipboard('./bin/es search "' + primaryTerm + '" --top-k 10');
+    });
+    cliWrap.appendChild(fileCarveBtn);
+
+    if (node.group === 'File') {
+      var icatBtn = document.createElement('a');
+      icatBtn.href = '#'; icatBtn.className = 'btn-link text-[12px]';
+      icatBtn.style.padding = '0';
+      icatBtn.textContent = '$ sb exec --tool icat (carve)';
+      icatBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        var cmd = './bin/sb exec --case ' + caseId + ' --tool icat \\\n  --args \'{"image":"/case/disk.E01","inode":' + node.id + '}\'';
+        copyToClipboard(cmd);
+      });
+      cliWrap.appendChild(icatBtn);
+    }
+
+    if (node.group === 'Process') {
+      var pstreeBtn = document.createElement('a');
+      pstreeBtn.href = '#'; pstreeBtn.className = 'btn-link text-[12px]';
+      pstreeBtn.style.padding = '0';
+      pstreeBtn.textContent = '$ vol windows.pstree (re-run)';
+      pstreeBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        copyToClipboard('./bin/sb exec --case ' + caseId + ' --tool vol3 \\\n  --args \'{"plugin":"windows.pstree","memory_image":"/case/memdump.mem"}\'');
+      });
+      cliWrap.appendChild(pstreeBtn);
+    }
+
+    var cypherBtn = document.createElement('a');
+    cypherBtn.href = '#'; cypherBtn.className = 'btn-link text-[12px]';
+    cypherBtn.style.padding = '0';
+    cypherBtn.textContent = '$ es graph cypher (neighbors)';
+    cypherBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var cypher = 'MATCH (n)-[r]-(m) WHERE id(n) = ' + node.id + ' RETURN n, r, m';
+      copyToClipboard("./bin/es graph cypher '" + cypher + "'");
+    });
+    cliWrap.appendChild(cypherBtn);
+
+    cliWrap.appendChild(statusFlash);
+    openBar.appendChild(cliWrap);
+
+    nodeDetailEl.appendChild(openBar);
+
     while (nodeFindingsEl.firstChild) nodeFindingsEl.removeChild(nodeFindingsEl.firstChild);
     var loading = document.createElement('div');
     loading.className = 'text-[12px]'; loading.style.color = 'var(--ink-quiet)';
