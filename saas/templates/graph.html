@@ -74,7 +74,7 @@
 <script src="/static/vis-network.min.js"></script>
 <script>
 (function () {
-  var caseId = {{ case_id | json_encode() }};
+  var caseId = {{ case_id | json_encode() | safe }};
 
   // Warm, desaturated palette in keeping with the cream/clay theme.
   var groupColors = {
