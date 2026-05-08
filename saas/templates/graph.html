@@ -1,80 +1,89 @@
 {% extends "_base.html" %}
 
-{% block title %}{{ case_id }} — Attack Graph — find-evil-sleuth inspector{% endblock %}
+{% block title %}{{ case_id }} — Attack graph — find-evil-sleuth inspector{% endblock %}
 
 {% block content %}
-<div class="max-w-full mx-auto h-full flex flex-col" style="height: calc(100vh - 120px);">
 
-  <div class="flex items-center gap-3 mb-4 flex-shrink-0">
-    <a href="/" class="text-gray-500 hover:text-green-400 transition-colors text-sm">&#x2190; Cases</a>
-    <span class="text-gray-700">/</span>
-    <a href="/case/{{ case_id }}" class="text-gray-500 hover:text-green-400 transition-colors text-sm">{{ case_id }}</a>
-    <span class="text-gray-700">/</span>
-    <h1 class="text-xl font-bold text-green-400 font-mono">Attack Graph</h1>
-    <div class="ml-4 flex items-center gap-2">
-      <a href="/case/{{ case_id }}/findings"
-         class="text-xs px-2 py-1 rounded border border-gray-700 text-gray-400 hover:border-green-600 hover:text-green-400 transition-colors">
-        Findings &#x2192;
-      </a>
-      <a href="/case/{{ case_id }}"
-         class="text-xs px-2 py-1 rounded border border-gray-700 text-gray-400 hover:border-green-600 hover:text-green-400 transition-colors">
-        Timeline &#x2192;
-      </a>
-    </div>
-    <span id="graph-status" class="ml-auto text-xs text-gray-500">loading&hellip;</span>
-  </div>
-
-  <div class="flex gap-4 flex-1 min-h-0">
-
-    <div class="flex-1 relative">
-      <div class="absolute inset-0 rounded border border-gray-800 bg-gray-950" id="graph-container"></div>
-    </div>
-
-    <div class="w-80 flex-shrink-0 flex flex-col gap-3">
-
-      <div class="bg-gray-900 rounded border border-gray-800 p-3">
-        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Legend</div>
-        <div class="flex flex-col gap-1.5 text-xs">
-          <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full" style="background:#f59e0b"></span><span class="text-gray-300">Process</span></div>
-          <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full" style="background:#3b82f6"></span><span class="text-gray-300">File</span></div>
-          <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full" style="background:#ef4444"></span><span class="text-gray-300">NetworkEndpoint</span></div>
-          <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full" style="background:#8b5cf6"></span><span class="text-gray-300">RegistryKey</span></div>
-          <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full" style="background:#10b981"></span><span class="text-gray-300">User</span></div>
-          <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full" style="background:#ec4899"></span><span class="text-gray-300">IOC</span></div>
-        </div>
-      </div>
-
-      <div class="bg-gray-900 rounded border border-gray-800 p-3">
-        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Stats</div>
-        <div class="text-xs">
-          <span class="text-gray-400">Nodes: </span><span id="node-count" class="text-green-400 font-mono">—</span>
-          &nbsp;
-          <span class="text-gray-400">Edges: </span><span id="edge-count" class="text-green-400 font-mono">—</span>
-        </div>
-      </div>
-
-      <div class="bg-gray-900 rounded border border-gray-800 p-3 flex-1 overflow-hidden flex flex-col" id="node-panel">
-        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Selected Node</div>
-        <div id="node-detail" class="text-xs text-gray-500 italic">Click a node to inspect</div>
-        <div id="node-findings" class="mt-3 flex flex-col gap-2 overflow-y-auto"></div>
-      </div>
-
-    </div>
-  </div>
+<div class="flex items-baseline gap-3 mb-2 text-[13px]" style="color: var(--ink-quiet);">
+  <a href="/" class="hover:underline" style="color: var(--ink-mute);">Cases</a>
+  <span>/</span>
+  <a href="/case/{{ case_id }}" class="hover:underline" style="color: var(--ink-mute);">
+    <span class="id-mono">{{ case_id }}</span>
+  </a>
+  <span>/</span>
+  <span>Attack graph</span>
 </div>
+
+<div class="flex items-end justify-between flex-wrap gap-4 mb-6">
+  <div>
+    <h1 class="display text-[clamp(28px,3.4vw,40px)]">Attack graph</h1>
+    <p class="lede mt-3" style="font-size: 16px; max-width: 60ch;">
+      Apache AGE rendering of every process, file, network endpoint, and registry edge the agent observed.
+      Click any node to see the findings that reference it.
+    </p>
+  </div>
+  <span id="graph-status" class="eyebrow">loading…</span>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6" style="height: 70vh;">
+  <div class="surface relative overflow-hidden">
+    <div id="graph-container" class="absolute inset-0"></div>
+  </div>
+
+  <aside class="flex flex-col gap-4 min-h-0">
+    <div class="surface px-5 py-4">
+      <div class="eyebrow mb-3">Legend</div>
+      <ul class="space-y-1.5 text-[13px]" style="color: var(--ink-soft);">
+        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#c98052"></span>Process</li>
+        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#7896b5"></span>File</li>
+        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#b5564a"></span>Network endpoint</li>
+        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#9c7bbf"></span>Registry key</li>
+        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#6f9b6f"></span>User</li>
+        <li class="flex items-center gap-2"><span class="legend-dot" style="background:#c4768a"></span>IOC</li>
+      </ul>
+    </div>
+
+    <div class="surface px-5 py-4">
+      <div class="eyebrow mb-2">Stats</div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <div class="text-[11px]" style="color: var(--ink-quiet);">Nodes</div>
+          <div class="num text-[24px] leading-none" id="node-count">—</div>
+        </div>
+        <div>
+          <div class="text-[11px]" style="color: var(--ink-quiet);">Edges</div>
+          <div class="num text-[24px] leading-none" id="edge-count">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="surface px-5 py-4 flex-1 min-h-0 flex flex-col">
+      <div class="eyebrow mb-2">Selected</div>
+      <div id="node-detail" class="text-[13px]" style="color: var(--ink-quiet); font-style: italic; font-family: var(--font-display);">
+        Click a node to inspect.
+      </div>
+      <div id="node-findings" class="mt-3 flex flex-col gap-2 overflow-y-auto"></div>
+    </div>
+  </aside>
+</div>
+
+<style>
+  .legend-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+</style>
 
 <script src="/static/vis-network.min.js"></script>
 <script>
 (function () {
   var caseId = {{ case_id | json_encode() }};
 
+  // Warm, desaturated palette in keeping with the cream/clay theme.
   var groupColors = {
-    Process:         { background: '#f59e0b', border: '#d97706', highlight: { background: '#fbbf24', border: '#f59e0b' } },
-    File:            { background: '#3b82f6', border: '#2563eb', highlight: { background: '#60a5fa', border: '#3b82f6' } },
-    NetworkEndpoint: { background: '#ef4444', border: '#dc2626', highlight: { background: '#f87171', border: '#ef4444' } },
-    RegistryKey:     { background: '#8b5cf6', border: '#7c3aed', highlight: { background: '#a78bfa', border: '#8b5cf6' } },
-    User:            { background: '#10b981', border: '#059669', highlight: { background: '#34d399', border: '#10b981' } },
-    IOC:             { background: '#ec4899', border: '#db2777', highlight: { background: '#f472b6', border: '#ec4899' } },
+    Process:         { background: '#c98052', border: '#a3623c' },
+    File:            { background: '#7896b5', border: '#5b7794' },
+    NetworkEndpoint: { background: '#b5564a', border: '#8e3e34' },
+    RegistryKey:     { background: '#9c7bbf', border: '#7a5d9b' },
+    User:            { background: '#6f9b6f', border: '#557955' },
+    IOC:             { background: '#c4768a', border: '#9c5a6c' },
   };
 
   var statusEl = document.getElementById('graph-status');
@@ -90,21 +99,22 @@
       edgeCountEl.textContent = data.edges.length;
 
       if (data.nodes.length === 0) {
-        statusEl.textContent = 'no graph data';
-        nodeDetailEl.textContent = 'No nodes in AGE graph for this case.';
+        statusEl.textContent = 'no graph yet';
+        nodeDetailEl.textContent = 'No AGE nodes for this case.';
         return;
       }
 
       statusEl.textContent = data.nodes.length + ' nodes · ' + data.edges.length + ' edges';
 
       var visNodes = data.nodes.map(function (n) {
-        var c = groupColors[n.group] || { background: '#6b7280', border: '#4b5563' };
+        var c = groupColors[n.group] || { background: '#9b8e80', border: '#6e635a' };
         return {
           id:    n.id,
           label: n.label,
           group: n.group,
-          color: c,
-          font:  { color: '#f3f4f6', size: 11, face: 'monospace' },
+          color: { background: c.background, border: c.border,
+                   highlight: { background: c.background, border: c.border } },
+          font:  { color: '#f5f1ea', size: 12, face: 'Inter Tight, system-ui, sans-serif', strokeWidth: 0 },
           shape: shapeFor(n.group),
           _props: n.props,
         };
@@ -112,14 +122,12 @@
 
       var visEdges = data.edges.map(function (e) {
         return {
-          id:     e.id,
-          from:   e.from,
-          to:     e.to,
-          label:  e.label,
-          font:   { color: '#9ca3af', size: 9, align: 'middle' },
-          color:  { color: '#4b5563', highlight: '#6b7280' },
-          arrows: { to: { enabled: true, scaleFactor: 0.6 } },
-          smooth: { type: 'dynamic' },
+          id: e.id, from: e.from, to: e.to, label: e.label,
+          font:  { color: '#7c6a55', size: 10, face: 'Inter Tight, system-ui, sans-serif',
+                   align: 'middle', background: 'rgba(245,239,228,0.85)' },
+          color: { color: '#c8b9a3', highlight: '#7c6a55' },
+          arrows:{ to: { enabled: true, scaleFactor: 0.5 } },
+          smooth:{ type: 'dynamic' },
         };
       });
 
@@ -127,11 +135,8 @@
       var network = new vis.Network(container,
         { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) },
         {
-          physics: {
-            enabled: true,
-            stabilization: { iterations: 150 },
-            barnesHut: { gravitationalConstant: -8000, springLength: 120, springConstant: 0.04 }
-          },
+          physics: { enabled: true, stabilization: { iterations: 180 },
+                     barnesHut: { gravitationalConstant: -7500, springLength: 130, springConstant: 0.04 } },
           interaction: { hover: true, tooltipDelay: 200 },
           layout: { improvedLayout: false },
         }
@@ -141,65 +146,115 @@
         if (!params.nodes.length) return;
         var nodeId = params.nodes[0];
         var node = visNodes.find(function (n) { return n.id === nodeId; });
-        if (!node) return;
-        showNodeDetail(node, caseId);
+        if (node) showNodeDetail(node, caseId);
       });
     })
-    .catch(function (err) {
-      statusEl.textContent = 'error: ' + err.message;
-    });
+    .catch(function (err) { statusEl.textContent = 'error: ' + err.message; });
 
   function shapeFor(group) {
     switch (group) {
-      case 'Process': return 'ellipse';
-      case 'File':    return 'box';
+      case 'Process':         return 'ellipse';
+      case 'File':            return 'box';
       case 'NetworkEndpoint': return 'diamond';
-      case 'RegistryKey': return 'hexagon';
-      case 'User':    return 'star';
-      case 'IOC':     return 'triangle';
-      default:        return 'dot';
+      case 'RegistryKey':     return 'hexagon';
+      case 'User':            return 'star';
+      case 'IOC':             return 'triangle';
+      default:                return 'dot';
     }
   }
 
   function showNodeDetail(node, caseId) {
-    nodeDetailEl.innerHTML = '<div class="mb-1"><span class="inline-block px-1.5 py-0.5 rounded text-xs font-mono" '
-      + 'style="background:' + (groupColors[node.group] || {}).background + '22;color:' + (groupColors[node.group] || {background:'#fff'}).background + '">'
-      + node.group + '</span></div>'
-      + '<div class="font-mono text-gray-200 break-all">' + escHtml(node.label.replace(/\n/g, ' ')) + '</div>'
-      + '<div class="mt-1 text-gray-600 text-xs">id: ' + escHtml(String(node.id)) + '</div>';
+    while (nodeDetailEl.firstChild) nodeDetailEl.removeChild(nodeDetailEl.firstChild);
+    nodeDetailEl.style.fontStyle = '';
+    nodeDetailEl.style.fontFamily = '';
 
-    nodeFindingsEl.innerHTML = '<div class="text-gray-600 text-xs">Loading related findings&hellip;</div>';
+    var chip = document.createElement('span');
+    chip.className = 'chip chip-quiet';
+    chip.textContent = node.group;
+    nodeDetailEl.appendChild(chip);
 
-    var searchTerm = node.label.split('\n')[0].replace(/[()]/g, '').trim();
+    var label = document.createElement('div');
+    label.className = 'id-mono mt-2 break-all';
+    label.style.color = 'var(--ink)';
+    label.textContent = String(node.label).replace(/\n/g, ' ');
+    nodeDetailEl.appendChild(label);
+
+    var idline = document.createElement('div');
+    idline.className = 'mt-1 text-[11px]';
+    idline.style.color = 'var(--ink-quiet)';
+    idline.textContent = 'id: ' + node.id;
+    nodeDetailEl.appendChild(idline);
+
+    while (nodeFindingsEl.firstChild) nodeFindingsEl.removeChild(nodeFindingsEl.firstChild);
+    var loading = document.createElement('div');
+    loading.className = 'text-[12px]';
+    loading.style.color = 'var(--ink-quiet)';
+    loading.textContent = 'Loading related findings…';
+    nodeFindingsEl.appendChild(loading);
+
+    var searchTerm = String(node.label).split('\n')[0].replace(/[()]/g, '').trim();
     fetch('/case/' + caseId + '/graph/node/' + encodeURIComponent(node.id) + '/findings?q=' + encodeURIComponent(searchTerm))
       .then(function (r) { return r.json(); })
       .then(function (findings) {
+        while (nodeFindingsEl.firstChild) nodeFindingsEl.removeChild(nodeFindingsEl.firstChild);
         if (!findings.length) {
-          nodeFindingsEl.innerHTML = '<div class="text-gray-600 text-xs italic">No related findings</div>';
+          var empty = document.createElement('div');
+          empty.className = 'text-[12px]';
+          empty.style.color = 'var(--ink-quiet)';
+          empty.style.fontStyle = 'italic';
+          empty.style.fontFamily = 'var(--font-display)';
+          empty.textContent = 'No related findings.';
+          nodeFindingsEl.appendChild(empty);
           return;
         }
-        nodeFindingsEl.innerHTML = findings.map(function (f) {
-          var statusColor = { confirmed: 'text-green-400', refuted: 'text-red-400', inconclusive: 'text-yellow-400', drift: 'text-orange-400' }[f.validation_status] || 'text-gray-400';
-          return '<a href="/finding/' + escAttr(f.finding_id) + '" class="block rounded border border-gray-700 p-2 hover:border-green-600 transition-colors">'
-            + '<div class="flex items-center gap-2 mb-1">'
-            + '<span class="font-mono text-green-400 text-xs">' + escHtml(f.finding_id) + '</span>'
-            + '<span class="text-xs ' + statusColor + '">' + escHtml(f.validation_status) + '</span>'
-            + '<span class="text-xs text-gray-600">' + escHtml(f.specialist) + '</span>'
-            + '</div>'
-            + '<div class="text-xs text-gray-400 break-words">' + escHtml(f.claim.substring(0, 100)) + (f.claim.length > 100 ? '&hellip;' : '') + '</div>'
-            + '</a>';
-        }).join('');
+        findings.forEach(function (f) {
+          var card = document.createElement('a');
+          card.href = '/finding/' + encodeURIComponent(f.finding_id);
+          card.className = 'block surface-flat px-3 py-2.5 text-[12.5px] hover:[border-color:var(--clay)]';
+          card.style.color = 'var(--ink-soft)';
+
+          var head = document.createElement('div');
+          head.className = 'flex items-center gap-2 mb-1';
+          var cite = document.createElement('span');
+          cite.className = 'cite';
+          cite.style.fontSize = '11px';
+          cite.textContent = f.finding_id;
+          head.appendChild(cite);
+
+          var statusChip = document.createElement('span');
+          statusChip.className = 'chip ' +
+            (f.validation_status === 'confirmed' ? 'chip-ok' :
+             f.validation_status === 'refuted'   ? 'chip-bad' :
+             f.validation_status === 'inconclusive' ? 'chip-warn' : 'chip-quiet');
+          statusChip.textContent = f.validation_status;
+          head.appendChild(statusChip);
+
+          var sp = document.createElement('span');
+          sp.className = 'text-[11px]';
+          sp.style.color = 'var(--ink-quiet)';
+          sp.textContent = f.specialist;
+          head.appendChild(sp);
+
+          card.appendChild(head);
+
+          var body = document.createElement('div');
+          body.style.color = 'var(--ink-mute)';
+          body.style.lineHeight = '1.4';
+          var text = String(f.claim);
+          body.textContent = text.length > 110 ? text.substring(0, 110) + '…' : text;
+          card.appendChild(body);
+
+          nodeFindingsEl.appendChild(card);
+        });
       })
       .catch(function () {
-        nodeFindingsEl.innerHTML = '<div class="text-red-500 text-xs">Error loading findings</div>';
+        while (nodeFindingsEl.firstChild) nodeFindingsEl.removeChild(nodeFindingsEl.firstChild);
+        var err = document.createElement('div');
+        err.className = 'text-[12px]';
+        err.style.color = 'var(--bad)';
+        err.textContent = 'Error loading findings.';
+        nodeFindingsEl.appendChild(err);
       });
-  }
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-  function escAttr(s) {
-    return encodeURIComponent(String(s));
   }
 })();
 </script>
