@@ -77,6 +77,21 @@ LIMIT 20;</textarea>
 <script>
 const sqlInput = document.getElementById('sql-input');
 
+// Honor /console#<urlencoded-sql> deep-links from the graph page so judges
+// can click a node → "SQL Console → ..." and land here pre-loaded.
+(function initFromHash(){
+  if (window.location.hash && window.location.hash.length > 1) {
+    try {
+      var sql = decodeURIComponent(window.location.hash.slice(1));
+      if (sql && sql.length < 4000) {
+        sqlInput.value = sql;
+        // Auto-run if the user explicitly arrived from a deep link.
+        setTimeout(function(){ runQuery(); }, 50);
+      }
+    } catch (_) {}
+  }
+})();
+
 document.querySelectorAll('button.canned').forEach(btn => {
   btn.addEventListener('click', () => {
     sqlInput.value = btn.dataset.sql;
