@@ -107,11 +107,14 @@ pub struct NewCaseReq {
     pub case_id: String,
     /// Free-form display name. Defaults to case_id when empty.
     pub name:    Option<String>,
-    /// "empty"        — create dir + cases row, do nothing else.
-    /// "investigate"  — create dir + spawn ./scripts/investigate.sh in background.
-    /// "fetch_lonewolf"— spawn ./scripts/fetch-evidence.sh lone-wolf in background,
-    ///                   then chain into investigate after fetch completes.
+    /// "empty"          — create dir + cases row, do nothing else.
+    /// "investigate"    — create dir + spawn ./scripts/investigate.sh in background.
+    /// "fetch_lonewolf" — pull SANS LoneWolf + investigate (legacy, kept for compat).
+    /// "fetch_dataset"  — pull `dataset` via scripts/fetch-dataset.sh, then investigate.
     pub mode:    String,
+    /// Required when mode == "fetch_dataset". One of:
+    ///   lone-wolf | cridex | cfreds-hacking | nitroba | dfrws-2008-mem | m57-jean | honeynet-6
+    pub dataset: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
