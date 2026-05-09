@@ -147,7 +147,7 @@ pub async fn new_case(
         ));
     }
     let mode = req.mode.as_str();
-    if !matches!(mode, "empty" | "investigate" | "fetch_lonewolf") {
+    if !matches!(mode, "empty" | "investigate" | "fetch_lonewolf" | "fetch_dataset") {
         return Err((
             StatusCode::BAD_REQUEST,
             Json(NewCaseErr { error: format!("unknown mode: {}", mode) }),
