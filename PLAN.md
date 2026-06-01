@@ -28,7 +28,7 @@ One Postgres 17 instance, port 5532 (allocated via `port-registry`), runs in `do
 | `pgvector` | Embeddings of artifacts, log lines, IOCs — semantic dedup across iterations |
 | `apache_age` | Attack graph (process → file → registry → network) — Cypher queries |
 | `timescaledb` | Hypertable on `tool_calls` for execution-log telemetry |
-| `pg_cron` | In-DB re-validation scheduler (replaces external cron) |
+| `pg_cron` | In-DB merkle/rollup scheduler; re-validation is per-finding (trigger+NOTIFY), not cron |
 | `pg_partman` | Partition management for `artifacts` blobstore over time |
 | `pg_trgm` | Fuzzy match on filenames, hostnames, IOCs |
 | `pgcrypto` | BLAKE3-equivalent hashing + Merkle root chaining |
@@ -59,8 +59,8 @@ Bootstrapped from `docker/postgres/init.sql`. Schema in `evidence-store/schema.s
       ▲                                          └─────────┬──────────┘
       │                                                    │
 ┌─────┴──────────┐                                ┌────────▼─────────┐
-│ agent-obs:8910 │◀── Phase A hook events ────────│ pg_cron: every    │
-│ (existing)     │                                │  N min revalidate │
+│ agent-obs:8910 │◀── Phase A hook events ────────│ per-finding    │
+│ (existing)     │                                │  trigger revalidate │
 └────────────────┘                                └───────────────────┘
 ```
 
@@ -106,7 +106,7 @@ Both flows emit the same structured retry pattern (Phase G close-the-loops analy
 - [ ] Skill + subagent `findings-validator` (re-runs claim, marks confirmed/refuted/inconclusive)
 - [ ] Skill + subagent `ir-narrator` (assembles report, `[F-NNN]` citations)
 - [ ] ADW driver `adws/investigate.py` — orchestrates triage → fan-out → validate → narrate, persistent loop until validator queue empty
-- [ ] pg_cron: re-validate findings older than 1h
+- [ ] per-finding: re-validate on finding INSERT / drift (trigger+NOTIFY), not by clock
 - [ ] Best-of-N judge for narrator output (Opus 4.7)
 
 ### Week 4 (May 27–Jun 2) — sample evidence + corrupt/crash injection

@@ -87,7 +87,7 @@
   <!-- pg_cron annotation -->
   <rect x="760" y="610" width="180" height="60" fill="#1c2128" stroke="#8b949e" stroke-width="1" rx="4"/>
   <text x="850" y="628" text-anchor="middle" font-size="10" fill="#f0883e">pg_cron jobs:</text>
-  <text x="850" y="644" text-anchor="middle" font-size="9" fill="#8b949e">revalidate stale findings</text>
+  <text x="850" y="644" text-anchor="middle" font-size="9" fill="#8b949e">re-validate: per-finding (trigger+NOTIFY)</text>
   <text x="850" y="658" text-anchor="middle" font-size="9" fill="#8b949e">vacuum hypertables</text>
   <text x="850" y="672" text-anchor="middle" font-size="9" fill="#8b949e">merkle root rollup hourly</text>
   <line x1="760" y1="640" x2="730" y2="640" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow-gray)"/>
