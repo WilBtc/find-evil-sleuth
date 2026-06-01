@@ -57,8 +57,6 @@ async fn main() -> Result<()> {
         .route("/case/:id/graph/node/:nid/findings", get(routes::node_findings))
         .route("/case/:id/audit", get(routes::audit_page))
         .route("/case/:id/audit/:rid/verify", get(routes::audit_verify))
-        .route("/console", get(routes::console_page))
-        .route("/console/query", post(routes::console_query))
         .nest_service("/static", ServeDir::new(static_dir))
         .with_state(state);
 

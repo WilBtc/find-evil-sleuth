@@ -47,13 +47,12 @@ CREATE TRIGGER trg_enqueue_finding_validation
 CREATE OR REPLACE FUNCTION request_revalidation(p_finding_id text) RETURNS boolean AS $fn$
 DECLARE n int;
 BEGIN
+    -- Flip non-pending → pending; the AFTER UPDATE trigger fires the single NOTIFY.
+    -- If it is already pending it was already enqueued — do NOT re-signal (avoids
+    -- redundant per-finding validations on a stuck finding).
     UPDATE findings SET validation_status = 'pending'
      WHERE finding_id = p_finding_id AND validation_status <> 'pending';
     GET DIAGNOSTICS n = ROW_COUNT;
-    IF n = 0 THEN
-        -- already pending: signal anyway so the listener re-checks it
-        PERFORM pg_notify('finding_validate', p_finding_id);
-    END IF;
     RETURN n > 0;
 END;
 $fn$ LANGUAGE plpgsql;
