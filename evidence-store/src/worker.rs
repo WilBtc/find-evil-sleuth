@@ -150,9 +150,30 @@ pub async fn run(pool: PgPool) -> Result<()> {
                         pending.push(id);
                     }
                     Err(e) => {
-                        error!("listener error: {e:#}; reconnecting in 5s");
-                        sleep(Duration::from_secs(5)).await;
-                        listener.listen(CHANNEL).await.ok();
+                        // The existing listener connection is dead; re-LISTENing on
+                        // it just spins. Rebuild a fresh listener (with backoff) and
+                        // only resume the select loop once it is established.
+                        error!("listener error: {e:#}; rebuilding listener");
+                        let mut backoff = Duration::from_secs(1);
+                        loop {
+                            sleep(backoff).await;
+                            match sqlx::postgres::PgListener::connect_with(&pool).await {
+                                Ok(mut fresh) => match fresh.listen(CHANNEL).await {
+                                    Ok(()) => {
+                                        listener = fresh;
+                                        info!("listener re-established on channel '{CHANNEL}'");
+                                        break;
+                                    }
+                                    Err(le) => {
+                                        error!("re-LISTEN failed: {le:#}; retrying");
+                                    }
+                                },
+                                Err(ce) => {
+                                    error!("listener reconnect failed: {ce:#}; retrying");
+                                }
+                            }
+                            backoff = (backoff * 2).min(Duration::from_secs(30));
+                        }
                     }
                 }
             }

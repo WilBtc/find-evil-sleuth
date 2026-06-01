@@ -45,35 +45,8 @@ END $outer$;
 --
 -- The pg_cron schedule: every 30 minutes (same as before).
 
-DO $outer$ BEGIN
-    PERFORM cron.schedule(
-        'revalidate-stale-confirmed-findings',
-        '*/30 * * * *',
-        $sql$
-        WITH stale_confirmed AS (
-            SELECT f.finding_id
-            FROM   findings f
-            JOIN   LATERAL (
-                       SELECT validated_at
-                       FROM   validation_history vh
-                       WHERE  vh.finding_id = f.finding_id
-                       ORDER  BY vh.validated_at DESC
-                       LIMIT  1
-                   ) latest ON true
-            WHERE  f.validation_status = 'confirmed'
-              AND  latest.validated_at < now() - interval '24 hours'
-        ),
-        inserted AS (
-            INSERT INTO validation_history (finding_id, status)
-            SELECT finding_id, 'pending'
-            FROM   stale_confirmed
-            RETURNING finding_id
-        )
-        UPDATE findings
-           SET validation_status = 'pending'
-          FROM inserted
-         WHERE findings.finding_id = inserted.finding_id
-        $sql$
-    );
-EXCEPTION WHEN undefined_table OR undefined_function THEN NULL;
-END $outer$;
+-- cron.schedule for 'revalidate-stale-confirmed-findings' removed: superseded by
+-- 018 — per-finding revalidation. The */30 time-based job is no longer recreated
+-- on a fresh sequential apply, preventing the revalidation storm. The
+-- validation_history table/indexes above and the cron.unschedule block (which
+-- tears down any old job from a prior deploy) are retained. No-op.

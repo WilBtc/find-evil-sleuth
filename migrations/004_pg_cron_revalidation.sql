@@ -14,19 +14,7 @@ DO $outer$ BEGIN
 EXCEPTION WHEN undefined_table OR undefined_function THEN NULL;
 END $outer$;
 
-DO $outer$ BEGIN
-    PERFORM cron.schedule(
-        'revalidate-stale-findings',
-        '*/30 * * * *',
-        $sql$
-        UPDATE findings
-        SET    validation_status = 'pending'
-        WHERE  validation_status = 'pending'
-           OR  (
-                   validation_status IN ('confirmed', 'refuted', 'inconclusive', 'drift')
-                   AND (last_validated_at IS NULL OR last_validated_at < now() - interval '1 hour')
-               )
-        $sql$
-    );
-EXCEPTION WHEN undefined_table OR undefined_function THEN NULL;
-END $outer$;
+-- cron.schedule for 'revalidate-stale-findings' removed: superseded by 018 —
+-- per-finding revalidation. The destructive */30 UPDATE-reset storm is no longer
+-- recreated on a fresh sequential apply. The cron.unschedule block above is kept
+-- so any pre-existing job from an older deploy is torn down. No-op.

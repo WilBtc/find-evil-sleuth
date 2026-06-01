@@ -6,7 +6,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 use crate::AppState;
 
 #[derive(Debug, Serialize, FromRow)]
@@ -114,6 +113,9 @@ pub struct NewCaseReq {
     pub mode:    String,
     /// Required when mode == "fetch_dataset". One of:
     ///   lone-wolf | cridex | cfreds-hacking | nitroba | dfrws-2008-mem | m57-jean | honeynet-6
+    /// Retained for request-shape compatibility; spawn modes are refused
+    /// (see new_case), so this is no longer acted upon.
+    #[allow(dead_code)]
     pub dataset: Option<String>,
 }
 
@@ -151,6 +153,23 @@ pub async fn new_case(
         return Err((
             StatusCode::BAD_REQUEST,
             Json(NewCaseErr { error: format!("unknown mode: {}", mode) }),
+        ));
+    }
+
+    // SAFETY (FIND EVIL — architectural guardrail): this endpoint is
+    // unauthenticated. Any mode that spawns a detached shell pipeline
+    // (investigate.sh / fetch+bash -c) is a CPU/disk DoS vector and is
+    // refused at the architecture level. The live demo uses the FIXED
+    // pre-seeded case 'lone-wolf-1778168581' (run from the terminal), so
+    // no spawn is needed from the web. Read-only routes and 'empty'
+    // (DB row + dir) remain functional.
+    if matches!(mode, "investigate" | "fetch_lonewolf" | "fetch_dataset") {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(NewCaseErr {
+                error: "spawning investigations from the web UI is disabled; \
+                        run ./scripts/investigate.sh ./cases/<id>/ from the terminal".into(),
+            }),
         ));
     }
 
@@ -197,37 +216,12 @@ pub async fn new_case(
     let log_path = log_dir.join(format!("{}.log", &req.case_id));
     let log_path_str = log_path.display().to_string();
 
-    let mut log_path_resp = None;
-
-    match mode {
-        "empty" => {
-            // Just leave the case as 'pending'. User drops evidence, runs
-            // investigate.sh from terminal when ready.
-        }
-        "investigate" => {
-            log_path_resp = Some(log_path_str.clone());
-            spawn_adw(&repo_root, &case_dir, &log_path)
-                .map_err(|e| (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(NewCaseErr { error: format!("spawn investigate.sh: {}", e) }),
-                ))?;
-            // intentionally NOT setting status='running' here — investigate.py
-            // owns the state machine; flipping it pre-spawn confuses the
-            // resume path.
-        }
-        "fetch_lonewolf" => {
-            log_path_resp = Some(log_path_str.clone());
-            spawn_fetch_then_investigate(&repo_root, &case_dir, &log_path)
-                .map_err(|e| (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(NewCaseErr { error: format!("spawn fetch+investigate: {}", e) }),
-                ))?;
-            // intentionally NOT setting status='running' here — investigate.py
-            // owns the state machine; flipping it pre-spawn confuses the
-            // resume path.
-        }
-        _ => unreachable!(),
-    }
+    // All spawn-bearing modes were already refused above; only "empty"
+    // reaches here. Keep the case as 'triage' — user drops evidence and
+    // runs investigate.sh from the terminal when ready. No unreachable!()
+    // arm: this handler must never panic.
+    let _ = (&log_path, &log_path_str);
+    let log_path_resp: Option<String> = None;
 
     Ok(Json(NewCaseResp {
         case_id:     req.case_id.clone(),
@@ -236,49 +230,10 @@ pub async fn new_case(
     }))
 }
 
-fn spawn_adw(repo_root: &PathBuf, case_dir: &PathBuf, log_path: &PathBuf) -> std::io::Result<()> {
-    let log = std::fs::OpenOptions::new()
-        .create(true).append(true).open(log_path)?;
-    let log_err = log.try_clone()?;
-
-    Command::new("setsid")
-        .arg("./scripts/investigate.sh")
-        .arg(case_dir)
-        .current_dir(repo_root)
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(log))
-        .stderr(Stdio::from(log_err))
-        .spawn()
-        .map(|_| ())
-}
-
-fn spawn_fetch_then_investigate(
-    repo_root: &PathBuf,
-    case_dir: &PathBuf,
-    log_path: &PathBuf,
-) -> std::io::Result<()> {
-    let log = std::fs::OpenOptions::new()
-        .create(true).append(true).open(log_path)?;
-    let log_err = log.try_clone()?;
-
-    // Chain: fetch then investigate, in a detached shell.
-    let case_dir_str = case_dir.display().to_string();
-    let cmd = format!(
-        "./scripts/fetch-evidence.sh lone-wolf && \
-         cp -r evidence-samples/lone-wolf/* {dst}/ && \
-         ./scripts/investigate.sh {dst}",
-        dst = case_dir_str,
-    );
-
-    Command::new("setsid")
-        .arg("bash").arg("-c").arg(cmd)
-        .current_dir(repo_root)
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(log))
-        .stderr(Stdio::from(log_err))
-        .spawn()
-        .map(|_| ())
-}
+// NOTE: the detached-spawn helpers (setsid ./scripts/investigate.sh and the
+// fetch+bash -c chain) were removed: spawning investigations from this
+// unauthenticated endpoint is a CPU/disk DoS vector. Investigations are run
+// from the terminal via ./scripts/investigate.sh ./cases/<id>/.
 
 // ── GET /case/:id/log — tail the spawned-job log for live updates ──
 

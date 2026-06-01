@@ -23,8 +23,30 @@ pub async fn record(
         .await?;
     let finding_id = format!("F-{:03}", next_n.0);
 
+    // The artifact_hash IS the evidence/chain-of-custody guarantee, so a
+    // caller-supplied hash must be (a) a well-formed BLAKE3 digest and
+    // (b) reference an artifact that actually exists. Verify both inside the
+    // same transaction, before insert, so an unknown/forged hash can never be
+    // recorded against a finding.
     let artifact_bytes: Option<Vec<u8>> = match artifact_hash_hex {
-        Some(s) => Some(hex::decode(s.trim_start_matches("blake3:"))?),
+        Some(s) => {
+            let decoded = hex::decode(s.trim_start_matches("blake3:"))?;
+            if decoded.len() != 32 {
+                bail!(
+                    "invalid artifact_hash: BLAKE3 digest must be 32 bytes, got {}",
+                    decoded.len()
+                );
+            }
+            let exists: Option<(i32,)> =
+                sqlx::query_as("SELECT 1 FROM artifacts WHERE artifact_hash = $1")
+                    .bind(&decoded)
+                    .fetch_optional(&mut *tx)
+                    .await?;
+            if exists.is_none() {
+                bail!("unknown artifact: no artifact with the supplied artifact_hash exists");
+            }
+            Some(decoded)
+        }
         None => None,
     };
 
