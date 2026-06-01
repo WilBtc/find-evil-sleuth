@@ -4,9 +4,15 @@
 
 ## What it is
 
-find-evil-sleuth is a Level-5 agentic digital-forensics and incident-response (DFIR) system built for the SANS "FIND EVIL!" hackathon. Three specialist subagents (disk, memory, network) run the full SIFT toolchain autonomously, each producing `findings` rows in Postgres that carry a BLAKE3-hashed artifact chain, a Merkle-chained audit trail, and an Apache AGE attack graph. A validator subagent re-executes every claim against the original evidence; an IR-narrator subagent turns confirmed findings into a structured report with `[F-NNN]` citations.
+find-evil-sleuth is an agentic digital-forensics and incident-response (DFIR) system built for the SANS "FIND EVIL!" hackathon.
 
-The architectural guardrail is not a system prompt — it is a Bash `PreToolUse` hook that exits 1 on any command other than `./bin/sb` (sleuth-broker) or `./bin/es` (evidence-store), enforced at the Claude Code hook layer before the shell sees the command. The Rust broker behind `./bin/sb` validates tool arguments via `pg_jsonschema`, runs each forensic binary in a rootless podman container with a custom seccomp profile and read-only evidence mount, and streams stdout/stderr directly into Postgres. No agent can escape to raw shell, network, or the host filesystem.
+Three specialist subagents (disk, memory, network) run the full SIFT toolchain autonomously, each producing `findings` rows in Postgres that carry a BLAKE3-hashed artifact chain, a Merkle-chained audit trail, and an Apache AGE attack graph. 
+
+A validator subagent re-executes every claim against the original evidence; an IR-narrator subagent turns confirmed findings into a structured report with `[F-NNN]` citations.
+
+The architectural guardrail is not a system prompt — it is a Bash `PreToolUse` hook that exits 1 on any command other than `./bin/sb` (sleuth-broker) or `./bin/es` (evidence-store), enforced at the Claude Code hook layer before the shell sees the command. 
+
+The Rust broker behind `./bin/sb` validates tool arguments via `pg_jsonschema`, runs each forensic binary in a rootless podman container with a custom seccomp profile and read-only evidence mount, and streams stdout/stderr directly into Postgres. No agent can escape to raw shell, network, or the host filesystem.
 
 The substrate is Postgres 17 with eleven extensions (pgvector, Apache AGE, TimescaleDB, pg_cron, pg_partman, pg_trgm, pgcrypto, pg_stat_statements, pgaudit, pg_jsonschema, pg_graphql). Every tool invocation is a row. Every artifact is content-addressed. `./bin/es cite F-001` returns the complete provenance chain — tool call, arguments, exit code, stderr, BLAKE3 hash, artifact content — in under 100 ms. Judges can run live `SELECT` queries during the demo.
 
