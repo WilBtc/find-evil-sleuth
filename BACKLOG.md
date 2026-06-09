@@ -242,7 +242,7 @@
 
 ## P4.3 Submission packaging
 
-- [~] **4.3.1 GitHub mirror at `wilaroca2021/find-evil-sleuth`** *(deferred — needs user gh auth)*
+- [~] **4.3.1 GitHub mirror at `WilBtc/find-evil-sleuth`** *(deferred — needs user gh auth)*
   - Push from Gitea to GitHub. Verify Apache-2.0 detected in About sidebar. Public.
   - Done when: GitHub repo exists, public, Apache-2.0 detected, has a mirror-status note in README.
 

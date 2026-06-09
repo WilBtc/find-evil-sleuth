@@ -1,24 +1,79 @@
-# find-evil-sleuth
+<div align="center">
 
-> **Autonomous, tamper-proof DFIR on a Postgres substrate — from raw evidence to cited report without a human in the loop.**
+# 🔍 find-evil-sleuth
+
+### Autonomous, tamper-evident DFIR on a Postgres substrate — from raw evidence to a cited report, with no human in the loop.
+
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![SANS FIND EVIL! Hackathon](https://img.shields.io/badge/SANS-FIND_EVIL!_2026-c8102e.svg)](https://www.sans.org/)
+[![Built on SIFT](https://img.shields.io/badge/Built_on-SANS_SIFT-1a73e8.svg)](https://www.sans.org/tools/sift-workstation/)
+[![Rust + Postgres 17](https://img.shields.io/badge/Rust_%2B_Postgres_17-000.svg)](#architecture)
+
+**A Level-5 agentic DFIR system for the SANS "FIND EVIL!" hackathon.**
+The constraint isn't a prompt — it's the architecture.
+
+</div>
+
+---
+
+## ✅ Hackathon Submission Compliance
+
+Every required turn-in item, mapped to its exact location so judges can verify completeness at a glance.
+
+| # | Required item | Location |
+|---|---------------|----------|
+| 1 | Public code repository | **this repo** — https://github.com/WilBtc/find-evil-sleuth |
+| 2 | Open-source license (Apache-2.0) | [`LICENSE`](LICENSE) |
+| 3 | README with setup instructions | this file → [Quick Start](#-quick-start) |
+| 4 | Live deployment URL or step-by-step instructions | [Quick Start](#-quick-start) + [Persistent Inspector (SaaS)](#-persistent-inspector-saas) |
+| 5 | Text description of features/functionality | [What it is](#what-it-is) + [`submission/devpost-form.md`](submission/devpost-form.md) |
+| 6 | Demonstration video (≤5 min, audio narration, shows self-correction) | [`submission/demo.mp4`](submission/demo.mp4) · hosted URL in [`submission/devpost-form.md`](submission/devpost-form.md) |
+| 7 | Architecture diagram | [`docs/architecture.svg`](docs/architecture.svg) (rendered in [Architecture](#architecture)) |
+| 8 | Evidence dataset documentation | [`docs/EVIDENCE.md`](docs/EVIDENCE.md) |
+| 9 | Accuracy report | [`docs/ACCURACY.md`](docs/ACCURACY.md) |
+| 10 | Agent execution logs | [`submission/execution-log.ndjson`](submission/execution-log.ndjson) · live logs in [`logs/`](logs/) |
+
+---
 
 ## What it is
 
-find-evil-sleuth is a Level-5 agentic digital-forensics and incident-response (DFIR) system built for the SANS "FIND EVIL!" hackathon. Three specialist subagents (disk, memory, network) run the full SIFT toolchain autonomously, each producing `findings` rows in Postgres that carry a BLAKE3-hashed artifact chain, a Merkle-chained audit trail, and an Apache AGE attack graph. A validator subagent re-executes every claim against the original evidence; an IR-narrator subagent turns confirmed findings into a structured report with `[F-NNN]` citations.
+**find-evil-sleuth** runs a complete digital-forensics and incident-response investigation autonomously — from raw disk, memory, and network evidence to a structured, fully-cited report — with no human steps in the loop.
 
-The architectural guardrail is not a system prompt — it is a Bash `PreToolUse` hook that exits 1 on any command other than `./bin/sb` (sleuth-broker) or `./bin/es` (evidence-store), enforced at the Claude Code hook layer before the shell sees the command. The Rust broker behind `./bin/sb` validates tool arguments via `pg_jsonschema`, runs each forensic binary in a rootless podman container with a custom seccomp profile and read-only evidence mount, and streams stdout/stderr directly into Postgres. No agent can escape to raw shell, network, or the host filesystem.
+Three specialist subagents (disk, memory, network) drive the full SANS SIFT toolchain. Each produces `findings` rows in a Postgres 17 substrate, every one carrying a **BLAKE3-hashed artifact chain**, a **Merkle-chained audit trail**, and an **Apache AGE attack graph** node. A validator subagent re-executes *every* claim against the original evidence; an IR-narrator subagent turns confirmed findings into a report where every sentence carries a `[F-NNN]` citation back to its provenance.
 
-The substrate is Postgres 17 with eleven extensions (pgvector, Apache AGE, TimescaleDB, pg_cron, pg_partman, pg_trgm, pgcrypto, pg_stat_statements, pgaudit, pg_jsonschema, pg_graphql). Every tool invocation is a row. Every artifact is content-addressed. `./bin/es cite F-001` returns the complete provenance chain — tool call, arguments, exit code, stderr, BLAKE3 hash, artifact content — in under 100 ms. Judges can run live `SELECT` queries during the demo.
+### What makes it different
 
-## Quick Start
+Most agentic DFIR tools keep the model in-bounds with prompt engineering. find-evil-sleuth makes it **structurally impossible to misbehave**:
+
+- 🔒 **The guardrail is an architecture, not an instruction.** A Bash `PreToolUse` hook exits 1 on any command that isn't `./bin/sb` (broker) or `./bin/es` (evidence-store) — enforced *before* the shell sees it. The agent literally cannot run `strings`, `grep`, or `tshark` directly.
+- 🦀 **A Rust broker mediates every tool call.** It validates arguments with `pg_jsonschema`, runs each forensic binary in a **rootless podman container** with a custom **seccomp** profile and a **read-only** evidence mount, and streams stdout/stderr straight into Postgres.
+- 🧠 **Hallucination is bounded by re-execution.** The validator re-runs each finding's original tool call with identical arguments and compares output. Anything that can't be reproduced is marked `refuted` and excluded from the report.
+- 🗄️ **Postgres is the agent's brain.** Every tool invocation is a row. Every artifact is content-addressed. `./bin/es cite F-001` returns the complete provenance chain — tool call, arguments, exit code, stderr, BLAKE3 hash, artifact content — in under 100 ms. Judges can run live `SELECT` queries during the demo.
+
+---
+
+## 🏆 Judging Criteria → Design
+
+| # | Criterion | How we address it |
+|---|-----------|-------------------|
+| 1 | **Autonomous Execution Quality** | ADW outloop + best-of-N narrator (Opus judge); per-finding event-driven re-validation (DB trigger + `LISTEN/NOTIFY`, no clock, no human input); self-correction bounded to 3 retries per finding |
+| 2 | **IR Accuracy** | Validator re-runs every claim through the broker; `validation_status ∈ {confirmed, refuted, inconclusive, drift}`; pgvector cosine dedup collapses repeat IOCs. See [`docs/ACCURACY.md`](docs/ACCURACY.md) |
+| 3 | **Breadth × Depth** | Three deep specialists on the full SIFT toolchain: Sleuth Kit + Plaso (disk), Volatility 3 (memory), tshark + Zeek + Suricata w/ ET-Open rules (network) |
+| 4 | **Constraint Implementation** | Architectural guardrail: Bash hook + Rust broker + rootless podman + custom seccomp + read-only mount + `pg_jsonschema` — structural, not a system prompt |
+| 5 | **Audit Trail** | BLAKE3 content-addressed artifacts, Merkle-chained `tool_calls` hypertable, `findings.tool_call_id` FK; `es cite F-NNN` returns full trace in <100 ms; pgaudit logs every `SELECT` |
+| 6 | **Usability & Documentation** | One-command quickstart; persistent browser inspector; architecture SVG; `[F-NNN]` citations in every report paragraph |
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-# 1. Clone and start the substrate
-git clone https://github.com/wilaroca2021/find-evil-sleuth
+# 1. Clone and start the Postgres substrate
+git clone https://github.com/WilBtc/find-evil-sleuth
 cd find-evil-sleuth
 docker compose -f docker/compose.yaml up -d
 
-# 2. Fetch the SANS LoneWolf evidence (downloads ~2 GB from digitalcorpora.org)
+# 2. Fetch a SANS evidence case (downloads from digitalcorpora.org)
 ./scripts/fetch-evidence.sh ./cases/lone-wolf/
 
 # 3. Run the full investigation (triage → specialists → validator → narrator)
@@ -28,34 +83,51 @@ docker compose -f docker/compose.yaml up -d
 ./bin/es cite F-001
 ```
 
-`investigate.sh` drives the complete ADW pipeline: triage classifies evidence, three specialists run in parallel, the validator re-executes every claim, the narrator emits `report.md` inside your case directory. Estimated wall time on an 8-core/32 GB VM: 20–40 minutes for the full LoneWolf dataset.
+`investigate.sh` drives the complete ADW pipeline: triage classifies the evidence, three specialists run in parallel, the validator re-executes every claim, and the narrator emits `report.md` into the case directory. Typical wall time on an 8-core / 32 GB machine: **20–40 minutes** for a full disk+memory+network case; the evidence download is the only long step.
 
-**Smoke test (2026-05-07):** clone-to-`cite F-001` verified in **3 s** on insa-dev-server (substrate already running). Run `./scripts/smoke-test.sh --skip-compose` to reproduce. Full quickstart including `docker compose up` cold start is <5 min; the 31 GB evidence download is the only step that takes longer.
-
-## Persistent Inspector (SaaS) — 30-second start
-
-`bin/sleuth-saas` is a compiled Rust web app that gives judges and reviewers a persistent browser UI into any completed investigation — no Python, no notebook, no terminal required.
+A fast end-to-end smoke test (substrate already running) completes in seconds:
 
 ```bash
-./scripts/saas.sh up   # starts postgres if needed, launches inspector on :8932
+./scripts/smoke-test.sh --skip-compose   # clone-to-`cite` sanity check
 ```
 
-Open **http://127.0.0.1:8932/** and navigate to any case in under a second.
+---
+
+## 🖥️ Persistent Inspector (SaaS)
+
+`bin/sleuth-saas` is a compiled Rust web app — a persistent browser UI into any completed investigation. No Python, no notebook, no terminal required.
+
+```bash
+./scripts/saas.sh up      # starts Postgres if needed, launches inspector on :8932
+```
+
+Open **http://127.0.0.1:8932/** and navigate any case in under a second.
 
 | Screen | URL | What you see |
 |--------|-----|--------------|
 | Case list | `/` | All cases with evidence counts and last-activity badge |
-| Findings table | `/case/<id>/findings` | Every finding — confidence, validation_status, MITRE tag, one-click drill-down |
+| Findings table | `/case/<id>/findings` | Every finding — confidence, validation_status, MITRE tag, drill-down |
 | Finding detail | `/finding/<fid>` | Tool call, exact args, stdout hash, artifact content, Merkle root |
 | Audit chain | `/case/<id>/audit` | Merkle-chained `tool_calls` with live verify badge (green = tamper-free) |
 | Attack graph | `/case/<id>/graph` | Apache AGE nodes rendered with vis-network — lateral movement at a glance |
-| SQL console | `/console` | Read-only `psql` session scoped to `sleuth_ro` — judges can run live `SELECT` queries |
+| SQL console | `/console` | Read-only `psql` scoped to `sleuth_ro` — judges run live `SELECT` queries |
 
-Screenshots: [`docs/saas-screenshots/`](docs/saas-screenshots/)
+Screenshots: [`docs/saas-screenshots/`](docs/saas-screenshots/) · stop with `./scripts/saas.sh down`.
 
-To stop: `./scripts/saas.sh down`
+---
 
-## Architecture
+## 🧰 SIFT Integration
+
+The hackathon is built around the **SANS SIFT Workstation**, and find-evil-sleuth integrates the SIFT toolchain at two levels:
+
+- **Per-tool sandboxed images** — each forensic binary (Sleuth Kit, Volatility 3, Plaso, tshark, Zeek, Suricata, YARA, bulk_extractor) runs in its own minimal rootless-podman image, registered in the broker's `tool_specs` table. This is the production path: tight sandboxing, fast startup, one container per tool call.
+- **Full SIFT distribution** — `find-evil-sleuth/sift-full` packages the complete SANS SIFT + REMnux distribution (~15 GB, the maintained `digitalsleuth/sift-remnux` bundle) for literal whole-distribution integration. Reproducible via [`scripts/fetch-sift.sh`](scripts/fetch-sift.sh); registered as the `mmls-sift-full` broker tool. Verified: Sleuth Kit 4.7.0, Volatility 3 (2.8.0) + Volatility 2 (2.6.1), Plaso/log2timeline.
+
+Every SIFT tool is reached **only** through the broker — validated, sandboxed, and recorded. No agent invokes a forensic binary directly.
+
+---
+
+## 🏗️ Architecture
 
 ![System Architecture](docs/architecture.svg)
 
@@ -69,48 +141,43 @@ ADW driver (adws/investigate.py)
     ├── ./bin/sb exec --tool <name> --args <json>
     │       │  validates args (pg_jsonschema)
     │       │  podman run --read-only --security-opt seccomp=sleuth.json
-    │       └──► tool container (sleuthkit / vol3 / tshark / zeek / …)
+    │       └──► tool container (sleuthkit / vol3 / tshark / zeek / sift-full / …)
     │
     └── ./bin/es cite|record-finding|search|graph
             └──► Postgres 17
                   pgvector · AGE · TimescaleDB · pg_cron · pgaudit · …
 ```
 
-## Judging Criteria → Design
+The substrate is **Postgres 17** with eleven extensions: pgvector (semantic finding search), Apache AGE (attack graph), TimescaleDB (tool-call time series), pg_cron (scheduled validation sweeps), pg_partman, pg_trgm, pgcrypto, pg_stat_statements, pgaudit (tamper-evident query log), pg_jsonschema (argument validation), pg_graphql.
 
-| # | Criterion | How we address it |
-|---|-----------|-------------------|
-| 1 | **Autonomous Execution Quality** | ADW outloop + best-of-N narrator (Opus judge); per-finding event-driven re-validation (DB trigger + LISTEN/NOTIFY, no clock, no human input); self-correction loop bounded to 3 retries per finding |
-| 2 | **IR Accuracy** | Validator subagent re-runs every claim via the broker; `validation_status` ∈ {confirmed, refuted, inconclusive, drift}; pgvector cosine dedup collapses repeat IOC findings |
-| 3 | **Breadth × Depth** | Three deep specialists with the full SIFT toolchain: sleuthkit + plaso (disk), Volatility 3 (memory), tshark + zeek + suricata with ET-Open rules (network) |
-| 4 | **Constraint Implementation** | Architectural guardrail: Bash hook + Rust broker + rootless podman + custom seccomp + read-only evidence mount + `pg_jsonschema` argument validation — not a system prompt |
-| 5 | **Audit Trail** | BLAKE3 content-addressed artifacts, Merkle-chained `tool_calls` hypertable, `findings.tool_call_id` FK; `es cite F-NNN` returns full trace in <100 ms; pgaudit logs every `SELECT` |
-| 6 | **Usability & Documentation** | One-command quickstart above; architecture SVG; `[F-NNN]` citations in every report paragraph; copy-paste `es cite` examples throughout |
+---
 
-## Plans
+## 📐 Design Documents
 
 Phase-by-phase design rationale lives in [`plans/`](plans/):
 
 | File | Contents |
 |------|----------|
 | [`00-master-plan.md`](plans/00-master-plan.md) | Win condition, architecture overview, phased build schedule |
-| [`01-postgres-substrate.md`](plans/01-postgres-substrate.md) | Full schema, every extension's role, pg_cron jobs, AGE graph, pgvector strategy |
+| [`01-postgres-substrate.md`](plans/01-postgres-substrate.md) | Full schema, each extension's role, pg_cron jobs, AGE graph, pgvector strategy |
 | [`02-broker-design.md`](plans/02-broker-design.md) | Tool spec format, allowlist, podman invocation, seccomp profile |
 | [`03-evidence-store-design.md`](plans/03-evidence-store-design.md) | Merkle chain, BLAKE3 layout, `cite` semantics, search/graph endpoints |
 | [`04-subagents-and-skills.md`](plans/04-subagents-and-skills.md) | Each agent's tools, system prompt, skill body, success/failure shape |
 | [`05-adw-outloop.md`](plans/05-adw-outloop.md) | investigate.py state machine, retry budget, parallelism caps, idempotency |
-| [`06-self-correction-demos.md`](plans/06-self-correction-demos.md) | Exact reproduction steps for both self-correction demos |
-| [`07-submission-deliverables.md`](plans/07-submission-deliverables.md) | Devpost checklist, README structure, accuracy report template |
+| [`06-self-correction-demos.md`](plans/06-self-correction-demos.md) | Exact reproduction steps for the self-correction demos |
+| [`07-submission-deliverables.md`](plans/07-submission-deliverables.md) | Submission checklist, README structure, accuracy report template |
 | [`08-risk-and-rollback.md`](plans/08-risk-and-rollback.md) | Full risk register with rollback plans and kill-switches |
 
-## License
+---
+
+## 📄 License
 
 Apache-2.0 — see [`LICENSE`](LICENSE).
 
-## Citations
+## 📚 Citations
 
-Evidence dataset: SANS Digital Forensics "LoneWolf" scenario, distributed via [digitalcorpora.org](https://digitalcorpora.org/) under the terms documented in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
+**Evidence datasets:** SANS DFIR scenarios distributed via [digitalcorpora.org](https://digitalcorpora.org/) and the SANS hackathon dataset repository — see [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
 
-Forensic toolchain: The Sleuth Kit (Brian Carrier, Apache-2.0), Volatility 3 (Volatility Foundation, Apache-2.0), Zeek (Zeek Project, BSD), Suricata (OISF, GPL-2.0), tshark (Wireshark Foundation, GPL-2.0), plaso (log2timeline project, Apache-2.0).
+**Forensic toolchain:** The Sleuth Kit (Brian Carrier, Apache-2.0), Volatility 3 (Volatility Foundation, Apache-2.0), Zeek (Zeek Project, BSD), Suricata (OISF, GPL-2.0), tshark (Wireshark Foundation, GPL-2.0), Plaso (log2timeline project, Apache-2.0), SANS SIFT + REMnux distribution (digitalsleuth).
 
-Postgres extensions: Apache AGE (Apache-2.0), pgvector (MIT), TimescaleDB (TSL/Apache-2.0), pg_cron (PostgreSQL License), pg_jsonschema (Apache-2.0), pgaudit (PostgreSQL License).
+**Postgres extensions:** Apache AGE (Apache-2.0), pgvector (MIT), TimescaleDB (TSL/Apache-2.0), pg_cron (PostgreSQL License), pg_jsonschema (Apache-2.0), pgaudit (PostgreSQL License).

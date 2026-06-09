@@ -230,7 +230,7 @@ find-evil-sleuth/
 
 ### Phase 6 · Week 6 (Jun 10–14) — Buffer + Submit
 
-- [ ] **6.1** Mirror Gitea → GitHub `wilaroca2021/find-evil-sleuth`. Verify Apache-2.0 detected in About.
+- [ ] **6.1** Mirror Gitea → GitHub `WilBtc/find-evil-sleuth`. Verify Apache-2.0 detected in About.
 - [ ] **6.2** Final dry run on a fresh Hetzner / DigitalOcean VM (8c/32g) — must complete from `git clone` to report in <45 min.
 - [ ] **6.3** Submit on Devpost by Jun 13 23:59 EDT. Reserve Jun 14 for emergencies. Hard stop Jun 15 18:00 EDT.
 

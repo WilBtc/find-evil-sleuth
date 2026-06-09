@@ -47,7 +47,7 @@ Most agentic DFIR systems rely on prompt engineering to keep the agent in bounds
 ## Code Repository
 
 <!-- Replace with GitHub public mirror URL after 4.3.1 is complete -->
-**URL:** `https://github.com/wilaroca2021/find-evil-sleuth`
+**URL:** `https://github.com/WilBtc/find-evil-sleuth`
 
 - License: Apache-2.0
 - Branch: `main`
@@ -90,7 +90,7 @@ Most agentic DFIR systems rely on prompt engineering to keep the agent in bounds
 **Quickstart:**
 
 ```bash
-git clone https://github.com/wilaroca2021/find-evil-sleuth
+git clone https://github.com/WilBtc/find-evil-sleuth
 cd find-evil-sleuth
 docker compose -f docker/compose.yaml up -d
 ./scripts/fetch-evidence.sh ./cases/lone-wolf/
