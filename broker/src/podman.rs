@@ -41,6 +41,14 @@ pub async fn run(
 
     std::fs::create_dir_all(scratch_dir)
         .with_context(|| format!("cannot create scratch_dir: {}", scratch_dir.display()))?;
+    // The container runs as uid 65534, but the scratch dir is created owned by
+    // the invoking user (0755), so writes from inside (editcap repair, plaso
+    // output, …) fail with "permission denied". Make it world-writable so the
+    // sandboxed tool can write its working files into the rw /scratch mount.
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(scratch_dir, std::fs::Permissions::from_mode(0o777));
+    }
     let scratch_dir_str = scratch_dir.canonicalize()
         .with_context(|| format!("scratch_dir not accessible: {}", scratch_dir.display()))?
         .display()
@@ -61,6 +69,12 @@ pub async fn run(
        .arg("--cpus").arg("4")
        .arg("--mount").arg(format!("type=bind,src={case_dir_str},dst=/case,ro"))
        .arg("--mount").arg(format!("type=bind,src={scratch_dir_str},dst=/scratch,rw"))
+       // The container runs --read-only as uid 65534 with no home, so tools that
+       // write a cache under $HOME/.cache (notably Volatility 3) fail with
+       // "read-only file system". Point HOME and the XDG cache at the writable
+       // tmpfs /tmp so those tools work without relaxing the sandbox.
+       .arg("--env").arg("HOME=/tmp")
+       .arg("--env").arg("XDG_CACHE_HOME=/tmp")
        .arg(format!("--network={}", spec.network));
 
     cmd.arg(&spec.image);
@@ -113,8 +127,8 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
             args.get("image").and_then(|x| x.as_str())
                 .context("mmls.args.image missing")?.to_string(),
         ]),
-        // mmls-sift --- same as mmls but routed through the SIFT image
-        "mmls-sift" => Ok(vec![
+        // mmls-sift / mmls-sift-full --- same as mmls, routed through the SIFT image(s)
+        "mmls-sift" | "mmls-sift-full" => Ok(vec![
             "mmls".into(),
             args.get("image").and_then(|x| x.as_str())
                 .context("mmls-sift.args.image missing")?.to_string(),

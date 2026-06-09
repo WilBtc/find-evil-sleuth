@@ -319,7 +319,7 @@
 
 ## P5.4 Full SIFT image (server-side, not built — downloaded)
 
-- [ ] **5.4.1 Pull full SANS SIFT distribution to dev-server, run in podman**
+- [x] **5.4.1 Pull full SANS SIFT distribution to dev-server, run in podman**
   - The current `find-evil-sleuth/sift:latest` is a *self-built* SIFT (Ubuntu 22.04 + sift-cli `--mode=server`). A fuller proof of integration is to pull the SANS-published SIFT distribution itself and run that as the container source.
   - Investigate options in this order, pick the first that works:
     1. **SANS OVA → rootfs extract:** download the SIFT Workstation OVA (https://www.sans.org/tools/sift-workstation/), extract the embedded VMDK, mount-loop or `qemu-nbd`, tar the rootfs, `podman import` to `find-evil-sleuth/sift-full:latest`. Tag versioned (e.g. `sift-full:2024.x` based on what SANS publishes).
