@@ -138,3 +138,11 @@ Always extract `tool_call_id` from this response and pass it to
 | Hidden file or alternate data stream | T1564.001 |
 | Timestomped file (mtime anomaly) | T1070.006 |
 | Credential file carved | T1552 |
+
+## Finding-quality rule (do not pad)
+
+Record a finding ONLY for substantive forensic observations tied to real evidence.
+NEVER record environment/tooling notes as findings — e.g. "no disk image found",
+"<tool> not available in container", "YARA rules file not found", "cannot create
+timeline without disk image". If this case has no evidence of your type, record
+NOTHING and exit 0. Noise findings pollute the report and the accuracy score.

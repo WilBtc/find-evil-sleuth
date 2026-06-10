@@ -11,7 +11,7 @@ tools: Bash, Read
 
 Perform a complete forensic examination of all network capture files in a given
 case. Use `./bin/sb exec` for every tool invocation and `./bin/es record-finding`
-for every finding. Produce ≥10 findings rows in Postgres before exiting.
+for every finding. Record every substantive finding (each distinct IOC, identity, and attack step). Quality over quota.
 
 ## Invocation
 
@@ -86,6 +86,51 @@ Read and follow: `.claude/skills/find-evil/network-forensics/SKILL.md`
      --args '{"pcap":"/case/traffic.pcap","display_filter":"tcp.flags.syn==1 and tcp.flags.ack==0","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","tcp.dstport","-E","header=y"]}'
    ```
 
+9b. **Application-layer identity & content extraction** (CRITICAL — this is where attribution lives):
+
+   Protocol statistics are NOT enough. You MUST extract the human-meaningful
+   artifacts: who emailed whom, account names, credentials, message content, URLs.
+
+   a. Dump ALL application-layer content that can carry identities (HTTP bodies,
+      webmail, SMTP/IMAP/POP). HTTP request/response bodies are where webmail
+      accounts and anonymous-email-service posts live:
+   ```bash
+   ./bin/sb exec --case <CASE_ID> --tool tshark \
+     --args '{"pcap":"/case/<file>.pcap","display_filter":"http.request or http.response or smtp or imap or pop","extra_args":["-T","fields","-e","ip.src","-e","ip.dst","-e","http.host","-e","http.request.full_uri","-e","http.cookie","-e","http.file_data","-e","smtp.req.parameter","-e","imap.request","-e","pop.request"]}'
+   ```
+   b. Surface every frame that contains an email address, then read the carrier frames:
+   ```bash
+   ./bin/sb exec --case <CASE_ID> --tool tshark \
+     --args '{"pcap":"/case/<file>.pcap","display_filter":"frame contains \"@\"","extra_args":["-T","fields","-e","frame.number","-e","ip.src","-e","ip.dst","-e","http.host"]}'
+   ./bin/sb exec --case <CASE_ID> --tool tshark \
+     --args '{"pcap":"/case/<file>.pcap","extra_args":["-q","-z","follow,tcp,ascii,<stream-index-from-above>"]}'
+   ```
+   c. Conversation/top-talker statistics — capture the ACTUAL host IPs (these live in
+      packet headers, not payloads, so you only see them here):
+   ```bash
+   ./bin/sb exec --case <CASE_ID> --tool tshark \
+     --args '{"pcap":"/case/<file>.pcap","extra_args":["-q","-z","conv,ip"]}'
+   ```
+
+   d. Carve ALL IOCs with bulk_extractor — the definitive identity-extraction tool.
+      It returns histograms (value + count) for emails, URLs, domains, and IPs:
+   ```bash
+   ./bin/sb exec --case <CASE_ID> --tool bulk_extractor \
+     --args '{"pcap":"/case/<file>.pcap"}'
+   ```
+   Record ONE finding per email under "=== email ===" and per external IP under
+   "=== ip ===" with the LITERAL value in the claim.
+
+   MANDATORY recording from this step:
+   - Run the output through an email regex ([A-Za-z0-9._%%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}).
+     Record ONE finding per UNIQUE email address with the LITERAL address in the claim
+     and the internal IP that sent/received it
+     (e.g. `claim: "Email account jcoachj@gmail.com used from 192.168.1.64 to send messages via webmail host mail.google.com"`).
+   - Record ONE finding per significant host pair from conv,ip with the LITERAL src and
+     dst IPs and byte volume (top talkers AND every external endpoint), so header-only
+     IPs are captured (e.g. `claim: "Top talker 192.168.15.4 exchanged N bytes with external <ip>"`).
+   - Record the external host(s) that received the messages, by literal IP, with role.
+
 10. **Run zeek analysis**:
     ```bash
     ./bin/sb exec --case <CASE_ID> --tool zeek \
@@ -115,8 +160,12 @@ Read and follow: `.claude/skills/find-evil/network-forensics/SKILL.md`
       SELECT count(*) FROM findings WHERE case_id='<CASE_ID>' AND specialist='network';
     "
     ```
-    If count < 10, run additional tshark passes (UDP stats, expert info) and record
-    one finding per step even if results are clean ("no evidence — confirmed").
+    Record a finding ONLY for substantive forensic observations — every distinct
+    IOC (email, account, external IP+role, domain, URL), attack step, and anomaly.
+    Do NOT pad the count: NEVER record environment/tooling notes as findings
+    ("bulk_extractor not available", "no disk image found", "YARA rules not found",
+    "high entropy" of an encrypted pcap). Those are not forensic findings and they
+    pollute the report. Signal over volume — a precise 8 beats a noisy 28.
 
 ## Reading sb exec JSON output
 
@@ -143,7 +192,7 @@ Always extract `tool_call_id` from this response and pass it to
 - NEVER write findings without a real `tool_call_id` from a broker call.
 - NEVER modify evidence files.
 - ALWAYS use `./bin/es record-finding` — never INSERT into findings directly.
-- Exit 0 when ≥10 findings are recorded. Exit 1 only if pcap is not found or
+- Exit 0 when the capture has been fully examined (protocol survey + application-layer identity/content extraction + attribution). Exit 1 only if pcap is not found or
   the database is unreachable.
 - If a tool call returns exit_code != 0, log it and continue — do NOT abort.
 
@@ -169,3 +218,7 @@ This is bounded to 1 repair attempt per file.
 | Port scanning | T1046 |
 | Lateral movement via network | T1021 |
 | Credential sniffing | T1040 |
+| Phishing / harassing email (link) | T1566.002 |
+| Phishing / spearphishing (attachment) | T1566.001 |
+| Adversary establishes email/web account | T1585.001 |
+| Web/webmail application-layer comms | T1071.001 |

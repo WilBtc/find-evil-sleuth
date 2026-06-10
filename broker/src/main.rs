@@ -130,13 +130,13 @@ async fn exec(
         "stderr_hash":  format!("blake3:{}", hex::encode(stderr_hash)),
         "stdout_size":  result.stdout.len(),
         "stderr_size":  result.stderr.len(),
-        "stdout_preview": String::from_utf8_lossy(&result.stdout[..result.stdout.len().min(4096)]),
+        "stdout_preview": String::from_utf8_lossy(&result.stdout[..result.stdout.len().min(65536)]),
         "stderr_tail":  String::from_utf8_lossy(
-            &result.stderr[result.stderr.len().saturating_sub(4096)..]
+            &result.stderr[result.stderr.len().saturating_sub(65536)..]
         ),
-        "stdout": String::from_utf8_lossy(&result.stdout[..result.stdout.len().min(4096)]),
+        "stdout": String::from_utf8_lossy(&result.stdout[..result.stdout.len().min(65536)]),
         "stderr": String::from_utf8_lossy(
-            &result.stderr[result.stderr.len().saturating_sub(4096)..]
+            &result.stderr[result.stderr.len().saturating_sub(65536)..]
         ),
     }))
 }

@@ -195,18 +195,21 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
             }
             Ok(v)
         }
-        // bulk_extractor --- carve IOCs from disk images
+        // bulk_extractor --- carve IOCs (emails, URLs, domains, IPs) and return histograms.
+        // Runs on any evidence (pcap or disk image); cats the *_histogram.txt result files
+        // back to stdout so the agent sees a small, high-signal value+count list.
         "bulk_extractor" => {
-            let mut v = vec!["bulk_extractor".into()];
-            v.push("-o".into());
-            v.push(args.get("output_dir").and_then(|x| x.as_str())
-                .context("bulk_extractor.args.output_dir missing")?.to_string());
-            v.push(args.get("image").and_then(|x| x.as_str())
-                .context("bulk_extractor.args.image missing")?.to_string());
-            if let Some(extra) = args.get("extra_args").and_then(|x| x.as_array()) {
-                for a in extra { if let Some(s) = a.as_str() { v.push(s.into()) } }
-            }
-            Ok(v)
+            let target = args.get("image").and_then(|x| x.as_str())
+                .or_else(|| args.get("pcap").and_then(|x| x.as_str()))
+                .or_else(|| args.get("target").and_then(|x| x.as_str()))
+                .context("bulk_extractor.args.image|pcap|target missing")?
+                .replace('\'', "");
+            let script = format!(
+                "out=/scratch/be; rm -rf \"$out\"; bulk_extractor -o \"$out\" '{}' >/dev/null 2>&1 || true; \
+                 for h in email url domain ip ccn telephone; do f=\"$out/${{h}}_histogram.txt\"; \
+                 if [ -s \"$f\" ]; then echo \"=== ${{h}} ===\"; head -n 80 \"$f\"; fi; done",
+                target);
+            Ok(vec!["bash".into(), "-lc".into(), script])
         }
         // yara --- scan with YARA rules
         "yara" => {

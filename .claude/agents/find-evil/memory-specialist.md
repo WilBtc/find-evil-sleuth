@@ -165,3 +165,11 @@ This is bounded to 3 retries per plugin (plan 04, Phase G pattern).
 | Suspicious DLL loaded from temp path | T1574.001 |
 | Network C2 connection | T1071 |
 | Credential access from lsass | T1003.001 |
+
+## Finding-quality rule (do not pad)
+
+Record a finding ONLY for substantive forensic observations tied to real evidence.
+NEVER record environment/tooling notes as findings — e.g. "no disk image found",
+"<tool> not available in container", "YARA rules file not found", "cannot create
+timeline without disk image". If this case has no evidence of your type, record
+NOTHING and exit 0. Noise findings pollute the report and the accuracy score.

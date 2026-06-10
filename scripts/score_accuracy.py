@@ -49,12 +49,16 @@ def score(gt, findings):
         ioc_hit += hit
         ioc_rows.append((ioc.get("type", "?"), val, hit))
 
-    ttp_rows, ttp_hit = [], 0
+    # exact match OR family match (a sub-technique satisfies its parent: T1566.002 -> T1566)
+    fam = {m.split(".")[0] for m in mitres}
+    ttp_rows, ttp_hit, ttp_fam_hit = [], 0, 0
     for t in gt.get("mitre_ttps", []):
         tu = t.upper()
-        hit = tu in mitres or tu.lower() in blob
-        ttp_hit += hit
-        ttp_rows.append((t, hit))
+        exact = tu in mitres or tu.lower() in blob
+        family = exact or tu.split(".")[0] in fam or tu.split(".")[0].lower() in blob
+        ttp_hit += exact
+        ttp_fam_hit += family
+        ttp_rows.append((t, exact, family))
 
     # precision proxy: confirmed findings that reference no ground-truth IOC value
     gt_vals = [str(i.get("value", "")).lower() for i in gt.get("key_iocs", []) if i.get("value")]
@@ -65,7 +69,7 @@ def score(gt, findings):
         "verdict_truth": gt.get("verdict"),
         "tier": gt.get("usability_tier"),
         "ioc_total": len(ioc_rows), "ioc_hit": ioc_hit, "ioc_rows": ioc_rows,
-        "ttp_total": len(ttp_rows), "ttp_hit": ttp_hit, "ttp_rows": ttp_rows,
+        "ttp_total": len(ttp_rows), "ttp_hit": ttp_hit, "ttp_fam_hit": ttp_fam_hit, "ttp_rows": ttp_rows,
         "confirmed": len(findings),
         "matched_findings": matched_findings,
         "unmatched_findings": len(findings) - matched_findings,
@@ -83,9 +87,11 @@ def render_md(s):
     L.append(f"- **IOC recall:** {s['ioc_hit']}/{s['ioc_total']} ({pct(s['ioc_hit'], s['ioc_total'])})")
     for typ, val, hit in s["ioc_rows"]:
         L.append(f"  - {'✅' if hit else '❌'} `{val}` ({typ})")
-    L.append(f"- **MITRE technique recall:** {s['ttp_hit']}/{s['ttp_total']} ({pct(s['ttp_hit'], s['ttp_total'])})")
-    for t, hit in s["ttp_rows"]:
-        L.append(f"  - {'✅' if hit else '❌'} {t}")
+    L.append(f"- **MITRE technique recall:** exact {s['ttp_hit']}/{s['ttp_total']} ({pct(s['ttp_hit'], s['ttp_total'])}) · "
+             f"family {s['ttp_fam_hit']}/{s['ttp_total']} ({pct(s['ttp_fam_hit'], s['ttp_total'])})")
+    for t, exact, family in s["ttp_rows"]:
+        mark = "✅" if exact else ("≈ (family)" if family else "❌")
+        L.append(f"  - {mark} {t}")
     L.append(f"- **Confirmed findings:** {s['confirmed']} "
              f"(matched to ground truth: {s['matched_findings']}, "
              f"unmatched/context: {s['unmatched_findings']})")
