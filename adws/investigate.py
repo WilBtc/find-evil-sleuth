@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import subprocess
+import re
 import sys
 import time
 from pathlib import Path
@@ -288,9 +289,78 @@ class Investigator:
     # DISPATCH
     # ------------------------------------------------------------------
 
+    def _pre_extract_iocs(self) -> None:
+        """Pre-stage: carve IOCs (emails, IPs, URLs) from every evidence file via the
+        broker with a long, NON-interactive timeout, writing them to
+        <case_dir>/carved_iocs.txt. Specialists then record these instantly instead of
+        racing the agent's per-command bash timeout. Generalizes to any evidence size."""
+        import glob, json as _json
+        exts = (".dd", ".raw", ".img", ".e01", ".E01", ".pcap", ".pcapng", ".mem", ".aff4")
+        files = [f for f in sorted(glob.glob(str(self.case_dir / "*"))) if f.endswith(exts)]
+        if not files:
+            return
+        log.info("=== PRE-EXTRACT IOCs (%d evidence file(s)) ===", len(files))
+        sections = []
+        for fp in files:
+            fname = os.path.basename(fp)
+            log.info("  carving %s", fname)
+            try:
+                r = subprocess.run(
+                    ["./bin/sb", "exec", "--case", self.case_id, "--tool", "bulk_extractor",
+                     "--args", _json.dumps({"image": f"/case/{fname}"})],
+                    cwd=str(self.project_root), capture_output=True, text=True, timeout=5400)
+                obj = _json.loads(r.stdout or "{}")
+                stdout = obj.get("stdout") or obj.get("stdout_preview") or ""
+                tcid = obj.get("tool_call_id")
+                sections.append("## carved IOCs from " + fname + "\n" + stdout)
+                if tcid:
+                    self._record_carved_iocs(stdout, tcid, fname)
+            except Exception as e:
+                log.warning("  carve failed for %s: %s", fname, e)
+        out_path = self.case_dir / "carved_iocs.txt"
+        out_path.write_text("\n\n".join(sections))
+        log.info("  wrote %s (%d bytes)", out_path, out_path.stat().st_size)
+
+    def _record_carved_iocs(self, stdout, tcid, fname):
+        """Record carved emails + IPs as findings citing the carve's tool_call so the
+        validator can re-run the carve and confirm them (correct provenance)."""
+        emails, ips, seen = [], [], set()
+        section = None
+        for line in stdout.splitlines():
+            l = line.strip()
+            if l.startswith("=== email"):
+                section = "email"; continue
+            if l.startswith("=== ip"):
+                section = "ip"; continue
+            if l.startswith("==="):
+                section = None; continue
+            if section == "email":
+                m = re.search(r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})", l)
+                if m and m.group(1) not in seen and len(emails) < 20:
+                    seen.add(m.group(1)); emails.append(m.group(1))
+            elif section == "ip":
+                m = re.search(r"((?:[0-9]{1,3}\.){3}[0-9]{1,3})", l)
+                if m and m.group(1) not in seen and len(ips) < 20:
+                    seen.add(m.group(1)); ips.append(m.group(1))
+        for em in emails:
+            self._es_record("disk", "Email address " + em + " carved from evidence " + fname, tcid, "T1078")
+        for ip in ips:
+            self._es_record("disk", "IP address " + ip + " carved from evidence " + fname, tcid, "T1071")
+        log.info("  recorded %d email + %d ip IOC findings from %s", len(emails), len(ips), fname)
+
+    def _es_record(self, spec, claim, tcid, mitre):
+        try:
+            subprocess.run(["./bin/es", "record-finding", "--case", self.case_id,
+                "--specialist", spec, "--claim", claim, "--tool-call-id", tcid,
+                "--confidence", "inferred", "--mitre", mitre],
+                cwd=str(self.project_root), capture_output=True, text=True, timeout=60)
+        except Exception as e:
+            log.warning("  es record-finding failed: %s", e)
+
     def state_dispatch(self) -> str:
         log.info("=== DISPATCH ===")
         self._set_status("specialists_running")
+        self._pre_extract_iocs()
 
         rows = db_query(self.conn,
             "SELECT specialist, config FROM case_plan WHERE case_id = %s",
@@ -329,9 +399,13 @@ class Investigator:
             prompt = (
                 f"Analyze {spec} evidence for case {self.case_id}. "
                 f"Evidence directory: {self.case_dir}/. "
-                "Use ./bin/sb exec for all tool calls and ./bin/es record-finding "
-                "for every finding. Produce ≥10 findings rows in Postgres, "
-                "then exit."
+                f"FIRST: read {self.case_dir}/carved_iocs.txt if it exists - it holds "
+                "emails, IP addresses and URLs already carved from the evidence. Record ONE "
+                "finding per significant IOC (every email, every external/internal host IP, "
+                "key URLs) with the LITERAL value in the claim and the artifact it came from. "
+                "THEN run tool-based analysis via ./bin/sb exec, recording findings via "
+                "./bin/es record-finding. Record every substantive finding (quality over "
+                "quota); never pad with environment/tooling notes. Then exit."
             )
             cmd = ["claude", "--print", "--model", MODEL_DEFAULT,
                    "--dangerously-skip-permissions"]

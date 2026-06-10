@@ -204,11 +204,14 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
                 .or_else(|| args.get("target").and_then(|x| x.as_str()))
                 .context("bulk_extractor.args.image|pcap|target missing")?
                 .replace('\'', "");
-            let script = format!(
-                "out=/scratch/be; rm -rf \"$out\"; bulk_extractor -o \"$out\" '{}' >/dev/null 2>&1 || true; \
-                 for h in email url domain ip ccn telephone; do f=\"$out/${{h}}_histogram.txt\"; \
-                 if [ -s \"$f\" ]; then echo \"=== ${{h}} ===\"; head -n 80 \"$f\"; fi; done",
-                target);
+            let pre = "set +e; in='";
+            let post = "'; out=/scratch/be; mkdir -p \"$out\"; \
+                case \"$in\" in *.E01|*.e01|*.Ex01|*.aff4) img_cat \"$in\" 2>/dev/null > /scratch/raw.dd; SRC=/scratch/raw.dd ;; *) SRC=\"$in\" ;; esac; \
+                { strings -n 6 \"$SRC\"; strings -e l -n 6 \"$SRC\"; } > \"$out/s.txt\" 2>/dev/null; \
+                echo '=== email ==='; grep -aoE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z][A-Za-z]+' \"$out/s.txt\" | sort | uniq -c | sort -rn | head -80; \
+                echo '=== ip ==='; grep -aoE '([0-9][0-9]?[0-9]?[.]){3}[0-9][0-9]?[0-9]?' \"$out/s.txt\" | sort | uniq -c | sort -rn | head -80; \
+                rm -f \"$out/s.txt\" /scratch/raw.dd";
+            let script = format!("{}{}{}", pre, target, post);
             Ok(vec!["bash".into(), "-lc".into(), script])
         }
         // yara --- scan with YARA rules

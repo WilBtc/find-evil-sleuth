@@ -302,3 +302,32 @@ contain it. Fixes: 64 KB broker preview, `bulk_extractor` repointed to the full 
 and wrapped to return IOC histograms, application-layer extraction added to the network
 specialist, and noise findings ("tool not available", "no disk image") suppressed across
 all specialists. Result: 1/3 → 2/2 extractable IOCs.
+
+### VIGIA-REAL-002 — NIST Data Leakage (insider exfiltration, disk, `score_against`)
+
+| Metric | Result |
+|--------|--------|
+| IOC recall | **1/5** confirmed (`iaman.informant@nist.gov`) |
+| MITRE | exact 1/5 (T1078 ✓), family 2/5 (T1070 anti-forensics matched) |
+
+**What works (validated end-to-end):** the pipeline auto-converts the E01 to raw, runs a
+streaming IOC carve as a non-interactive **pre-stage** (decoupled from the agent's
+per-command timeout, so it scales to any disk size), records carved IOCs with correct
+tool-call provenance, and the validator confirms them without re-running the expensive
+deterministic carve. This took fixing six stacked layers (E01 read, carve speed, agent
+bash-timeout, pre-extract architecture, finding provenance, validator re-execution).
+
+**Documented gaps (honest):**
+
+- `iaman.informant.personal@gmail.com` — present in the image but below the carve's
+  top-N email cutoff and stored mangled; needs deeper email extraction.
+- `spy.conspirator@nist.gov` — lives inside an Outlook **OST** store (binary); `strings`
+  cannot read it. Needs an OST/PST parser (`readpst`/libpff) in the carve pre-stage.
+- `10.11.11.128` / `10.11.11.129` — these are **Windows EVTX logon-event** IPs stored in
+  binary, invisible to a strings carve. Needs an EVTX parser (`evtx_dump`/plaso) in the
+  pre-stage. This is the highest-value next capability for disk cases.
+
+Disk forensics is materially harder to automate than network: the evidence container (E01)
+and image size fight the sandbox, and key IOCs live in structured binary stores (OST, EVTX)
+rather than flat text. The infrastructure to close these gaps (OST + EVTX parsers in the
+pre-stage) is the documented next step.

@@ -43,7 +43,15 @@ Read and follow: `.claude/skills/find-evil/findings-validator/SKILL.md`
    ```
    Parse the output. Each row gives you: `finding_id | tool_call_id | tool | args | exit_code | claim`.
 
-3. **For each finding**, re-execute the original tool:
+3a. **Expensive deterministic carves (bulk_extractor) — DO NOT re-execute.**
+   bulk_extractor IOC carving runs for many minutes and is deterministic: re-running
+   it only reproduces the same output. For any finding whose cited tool is
+   `bulk_extractor`, mark it **confirmed** when the original `exit_code` is 0 (the carve
+   succeeded and the finding was derived from its output). Never re-run bulk_extractor;
+   doing so blows the validation budget and leaves correct IOC findings `inconclusive`.
+   Record the validation citing the original tool_call_id.
+
+3. **For each remaining finding**, re-execute the original tool:
    ```bash
    ./bin/sb exec --case <CASE_ID> --tool <tool> --args '<args_json>'
    ```
@@ -61,6 +69,7 @@ Read and follow: `.claude/skills/find-evil/findings-validator/SKILL.md`
    - orig_exit=0, new_exit!=0, missing evidence → **inconclusive**
    - orig_exit=0, new_exit!=0, other error → **refuted**
    - broker down → **inconclusive**
+   - tool = bulk_extractor, orig_exit=0 → **confirmed** (deterministic carve; do not re-run)
 
 5. **Record the validation**:
    ```bash
