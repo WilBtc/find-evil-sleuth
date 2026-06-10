@@ -121,7 +121,7 @@ Screenshots: [`docs/saas-screenshots/`](docs/saas-screenshots/) · stop with `./
 The hackathon is built around the **SANS SIFT Workstation**, and find-evil-sleuth integrates the SIFT toolchain at two levels:
 
 - **Per-tool sandboxed images** — each forensic binary (Sleuth Kit, Volatility 3, Plaso, tshark, Zeek, Suricata, YARA, bulk_extractor) runs in its own minimal rootless-podman image, registered in the broker's `tool_specs` table. This is the production path: tight sandboxing, fast startup, one container per tool call.
-- **Full SIFT distribution** — `find-evil-sleuth/sift-full` packages the complete SANS SIFT + REMnux distribution (~15 GB, the maintained `digitalsleuth/sift-remnux` bundle) for literal whole-distribution integration. Reproducible via [`scripts/fetch-sift.sh`](scripts/fetch-sift.sh); registered as the `mmls-sift-full` broker tool. Verified: Sleuth Kit 4.7.0, Volatility 3 (2.8.0) + Volatility 2 (2.6.1), Plaso/log2timeline.
+- **Full SIFT distribution** — `find-evil-sleuth/sift-full` is the complete, **current** SANS SIFT Workstation (**2026-04-22**, Ubuntu 24.04, ~20 GB), extracted from the official SANS OVA via libguestfs (`virt-tar-out`) and imported as a container. Registered as the `mmls-sift-full` broker tool and reproducible via [`scripts/fetch-sift.sh`](scripts/fetch-sift.sh). Verified: Sleuth Kit 4.11.1, Volatility 3, Plaso/log2timeline 20260119. A maintained `digitalsleuth/sift-remnux` bundle is kept as the `sift-full:remnux-2024.10.19` fallback tag.
 
 Every SIFT tool is reached **only** through the broker — validated, sandboxed, and recorded. No agent invokes a forensic binary directly.
 
