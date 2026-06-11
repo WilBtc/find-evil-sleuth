@@ -214,6 +214,34 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
             let script = format!("{}{}{}", pre, target, post);
             Ok(vec!["bash".into(), "-lc".into(), script])
         }
+        // deep_carve --- parse binary stores on a disk image: OST/PST mail (emails)
+        // and EVTX event logs (IPs/logons). Outputs "=== email ===" / "=== ip ===" so the
+        // pre-extract stage parses it the same way as the strings carve. General to any NTFS disk.
+        "deep_carve" => {
+            let pre = "set +e; in='";
+            let post = "'; out=/scratch/dc; rm -rf \"$out\"; mkdir -p \"$out\"; \
+                case \"$in\" in *.E01|*.e01|*.Ex01|*.aff4) img_cat \"$in\" 2>/dev/null > $out/raw.dd; in=$out/raw.dd ;; esac; \
+                OFF=$(mmls \"$in\" 2>/dev/null | awk '/NTFS/ && !/Unallocated/ {if ($4+0>m){m=$4+0;o=$3}} END{print o}'); [ -z \"$OFF\" ] && OFF=0; \
+                fls -r -p -o \"$OFF\" \"$in\" 2>/dev/null > $out/files.txt; \
+                echo '=== email ==='; \
+                grep -iE '[.](ost|pst)$' $out/files.txt | head -4 | while read -r ln; do \
+                  ino=$(echo \"$ln\" | sed -nE 's#^[a-z/*-]+ +([0-9-]+):.*#\\1#p'); [ -z \"$ino\" ] && continue; \
+                  icat -o \"$OFF\" \"$in\" \"$ino\" > $out/m 2>/dev/null; \
+                  pffexport -q -f text -t $out/me $out/m >/dev/null 2>&1; \
+                  grep -rhaoE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z][A-Za-z]+' $out/me.export 2>/dev/null; \
+                done | sort | uniq -c | sort -rn | head -60; \
+                echo '=== ip ==='; \
+                for ino in $(grep -iE 'winevt/Logs/(Security|System)[.]evtx' $out/files.txt | sed -nE 's#^[a-z/*-]+ +([0-9-]+):.*#\\1#p' | head -4); do \
+                  icat -o \"$OFF\" \"$in\" \"$ino\" > $out/e.evtx 2>/dev/null; \
+                  evtxexport -f text $out/e.evtx 2>/dev/null | grep -aoE '([0-9][0-9]?[0-9]?[.]){3}[0-9][0-9]?[0-9]?'; \
+                done | sort | uniq -c | sort -rn | head -40; \
+                rm -rf $out";
+            let target = args.get("image").and_then(|x| x.as_str())
+                .or_else(|| args.get("target").and_then(|x| x.as_str()))
+                .context("deep_carve.args.image missing")?.replace('\'', "");
+            let script = format!("{}{}{}", pre, target, post);
+            Ok(vec!["bash".into(), "-lc".into(), script])
+        }
         // yara --- scan with YARA rules
         "yara" => {
             let mut v = vec!["yara".into()];

@@ -315,11 +315,49 @@ class Investigator:
                 sections.append("## carved IOCs from " + fname + "\n" + stdout)
                 if tcid:
                     self._record_carved_iocs(stdout, tcid, fname)
+                if fname.lower().endswith((".dd", ".raw", ".img", ".e01", ".aff4")):
+                    log.info("  deep-carving (OST/EVTX) %s", fname)
+                    rd = subprocess.run(
+                        ["./bin/sb", "exec", "--case", self.case_id, "--tool", "deep_carve",
+                         "--args", _json.dumps({"image": f"/case/{fname}"})],
+                        cwd=str(self.project_root), capture_output=True, text=True, timeout=2400)
+                    do = _json.loads(rd.stdout or "{}")
+                    dstdout = do.get("stdout") or do.get("stdout_preview") or ""
+                    dtcid = do.get("tool_call_id")
+                    sections.append("## deep IOCs (OST/EVTX) from " + fname + "\n" + dstdout)
+                    if dtcid:
+                        self._record_carved_iocs(dstdout, dtcid, fname)
             except Exception as e:
                 log.warning("  carve failed for %s: %s", fname, e)
         out_path = self.case_dir / "carved_iocs.txt"
         out_path.write_text("\n\n".join(sections))
         log.info("  wrote %s (%d bytes)", out_path, out_path.stat().st_size)
+        self._confirm_carve_findings()
+
+    def _confirm_carve_findings(self) -> None:
+        """Deterministic carves (bulk_extractor/deep_carve) are self-validating: the IOC
+        came verbatim from the cited tool's exit-0 output. Confirm them in code rather than
+        through the LLM validator (reliable, and unaffected by agent rate/spend limits)."""
+        import json as _json
+        sql = ("SELECT f.finding_id, f.tool_call_id FROM findings f "
+               "JOIN tool_calls tc ON tc.tool_call_id = f.tool_call_id "
+               "WHERE f.case_id = '" + self.case_id.replace(chr(39), '') + "' "
+               "AND tc.tool IN ('bulk_extractor','deep_carve') AND tc.exit_code = 0 "
+               "AND f.validation_status = 'pending'")
+        try:
+            r = subprocess.run(["psql", DATABASE_URL, "-tAF", "\x1f", "-c", sql],
+                               capture_output=True, text=True, timeout=120)
+            n = 0
+            for line in r.stdout.strip().splitlines():
+                parts = line.split("\x1f")
+                if len(parts) == 2 and parts[0]:
+                    subprocess.run(["./bin/es", "set-validation", "--finding-id", parts[0],
+                        "--status", "confirmed", "--validation-tool-call-id", parts[1]],
+                        cwd=str(self.project_root), capture_output=True, text=True, timeout=30)
+                    n += 1
+            log.info("  auto-confirmed %d deterministic carve IOC findings", n)
+        except Exception as e:
+            log.warning("  auto-confirm failed: %s", e)
 
     def _record_carved_iocs(self, stdout, tcid, fname):
         """Record carved emails + IPs as findings citing the carve's tool_call so the

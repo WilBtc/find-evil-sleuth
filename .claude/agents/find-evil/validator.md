@@ -46,8 +46,8 @@ Read and follow: `.claude/skills/find-evil/findings-validator/SKILL.md`
 3a. **Expensive deterministic carves (bulk_extractor) — DO NOT re-execute.**
    bulk_extractor IOC carving runs for many minutes and is deterministic: re-running
    it only reproduces the same output. For any finding whose cited tool is
-   `bulk_extractor`, mark it **confirmed** when the original `exit_code` is 0 (the carve
-   succeeded and the finding was derived from its output). Never re-run bulk_extractor;
+   `bulk_extractor` or `deep_carve`, mark it **confirmed** when the original `exit_code` is 0 (the carve
+   succeeded and the finding was derived from its output). Never re-run bulk_extractor or deep_carve;
    doing so blows the validation budget and leaves correct IOC findings `inconclusive`.
    Record the validation citing the original tool_call_id.
 
@@ -69,7 +69,7 @@ Read and follow: `.claude/skills/find-evil/findings-validator/SKILL.md`
    - orig_exit=0, new_exit!=0, missing evidence → **inconclusive**
    - orig_exit=0, new_exit!=0, other error → **refuted**
    - broker down → **inconclusive**
-   - tool = bulk_extractor, orig_exit=0 → **confirmed** (deterministic carve; do not re-run)
+   - tool in (bulk_extractor, deep_carve), orig_exit=0 → **confirmed** (deterministic carve; do not re-run)
 
 5. **Record the validation**:
    ```bash
