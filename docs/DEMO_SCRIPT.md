@@ -83,3 +83,27 @@ If a self-correction does not fire on the live take:
 3. Rules require live-terminal screencast, so record ≥3 live takes and keep the best.
 
 See `plans/06-self-correction-demos.md §Backup plan` for details.
+
+---
+
+## Optional Beat — Independent Accuracy Benchmark (strongest scoring hook)
+
+Slot this in at ~4:20 (trim the report beat to 0:05) or use it in the written submission.
+This is the beat that directly answers the hackathon success metric ("fewer hallucinated
+findings than the baseline").
+
+| Clock | Screen | Narration |
+|-------|--------|-----------|
+| 4:20 | Pane A: `./scripts/score_accuracy.py --case nitroba --ground-truth bench/ground-truth/VIGIA-REAL-007/ground_truth.json` | *"We don't grade ourselves. Here we score the system's validator-confirmed findings against an external answer key it never saw — the Nitroba network case. 100% of the IOCs that exist in the evidence, recovered and attributed: the suspect's Gmail account, the internal host. The benchmark even flagged one IOC in the community key that isn't present in the capture — so the agent is reasoning from evidence, not pattern-matching an answer sheet."* |
+
+**Verifiable claims:**
+- `score_accuracy.py` reads only `validation_status='confirmed'` findings (validator-approved).
+- Answer keys are vendored in `bench/ground-truth/` with SHA-256 provenance (`bench/README.md`).
+- Full methodology + honest caveats: `docs/ACCURACY.md` §9.
+
+## Pre-flight note (current SIFT)
+
+The full SANS SIFT Workstation **2026-04-22** (Ubuntu 24.04; Sleuth Kit 4.11.1, Volatility 3,
+Plaso 20260119) is the `find-evil-sleuth/sift-full` image, built from the official OVA via
+libguestfs (`scripts/fetch-sift.sh`). Show `podman run --rm find-evil-sleuth/sift-full:latest
+bash -lc 'fls -V; log2timeline.py --version'` if you want to prove the current toolchain on camera.
