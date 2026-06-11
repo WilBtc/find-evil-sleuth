@@ -110,7 +110,6 @@ Open **http://127.0.0.1:8932/** and navigate any case in under a second.
 | Finding detail | `/finding/<fid>` | Tool call, exact args, stdout hash, artifact content, Merkle root |
 | Audit chain | `/case/<id>/audit` | Merkle-chained `tool_calls` with live verify badge (green = tamper-free) |
 | Attack graph | `/case/<id>/graph` | Apache AGE nodes rendered with vis-network — lateral movement at a glance |
-| SQL console | `/console` | Read-only `psql` scoped to `sleuth_ro` — judges run live `SELECT` queries |
 
 Screenshots: [`docs/saas-screenshots/`](docs/saas-screenshots/) · stop with `./scripts/saas.sh down`.
 
