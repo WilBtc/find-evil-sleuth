@@ -48,8 +48,12 @@ echo "  dir     : $(pwd)"
 header "Step 1: Substrate (Postgres)"
 
 if [[ "$SKIP_COMPOSE" == "false" ]]; then
-    echo "  Starting docker compose..."
-    docker compose -f docker/compose.yaml up -d >/dev/null 2>&1
+    echo "  Starting compose..."
+    if docker compose version >/dev/null 2>&1; then
+        docker compose -f docker/compose.yaml up -d >/dev/null 2>&1
+    else
+        docker-compose -f docker/compose.yaml up -d >/dev/null 2>&1
+    fi
     echo "  Waiting for postgres health check..."
     for i in $(seq 1 30); do
         if docker inspect sleuth-postgres --format '{{.State.Health.Status}}' 2>/dev/null | grep -q healthy; then
