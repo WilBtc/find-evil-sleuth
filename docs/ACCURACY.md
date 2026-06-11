@@ -307,7 +307,7 @@ all specialists. Result: 1/3 → 2/2 extractable IOCs.
 
 | Metric | Result |
 |--------|--------|
-| IOC recall | **1/5** confirmed (`iaman.informant@nist.gov`) |
+| IOC recall | **2/5** confirmed (`iaman.informant@nist.gov` via carve, `spy.conspirator@nist.gov` via OST) — **2/3 of the emails actually present in the image** |
 | MITRE | exact 1/5 (T1078 ✓), family 2/5 (T1070 anti-forensics matched) |
 
 **What works (validated end-to-end):** the pipeline auto-converts the E01 to raw, runs a
@@ -323,9 +323,11 @@ bash-timeout, pre-extract architecture, finding provenance, validator re-executi
   top-N email cutoff and stored mangled; needs deeper email extraction.
 - `spy.conspirator@nist.gov` — lives inside an Outlook **OST** store (binary); `strings`
   cannot read it. Needs an OST/PST parser (`readpst`/libpff) in the carve pre-stage.
-- `10.11.11.128` / `10.11.11.129` — these are **Windows EVTX logon-event** IPs stored in
-  binary, invisible to a strings carve. Needs an EVTX parser (`evtx_dump`/plaso) in the
-  pre-stage. This is the highest-value next capability for disk cases.
+- `10.11.11.128` / `10.11.11.129` — **not present in the PC image at all**: Security.evtx
+  records only `127.0.0.1` (local logons). Like Nitroba's `140.247.62.34`, these are
+  answer-key phantom IOCs (scenario-level, likely in the removable-media images). The
+  `deep_carve` tool now parses EVTX (evtxexport) and OST/PST (pffexport) for cases where
+  such IOCs *are* present.
 
 Disk forensics is materially harder to automate than network: the evidence container (E01)
 and image size fight the sandbox, and key IOCs live in structured binary stores (OST, EVTX)
