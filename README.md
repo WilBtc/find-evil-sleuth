@@ -5,6 +5,7 @@
 ### Autonomous, tamper-evident DFIR on a Postgres substrate — from raw evidence to a cited report, with no human in the loop.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![CI](https://github.com/WilBtc/find-evil-sleuth/actions/workflows/ci.yml/badge.svg)](https://github.com/WilBtc/find-evil-sleuth/actions/workflows/ci.yml)
 [![SANS FIND EVIL! Hackathon](https://img.shields.io/badge/SANS-FIND_EVIL!_2026-c8102e.svg)](https://www.sans.org/)
 [![Built on SIFT](https://img.shields.io/badge/Built_on-SANS_SIFT-1a73e8.svg)](https://www.sans.org/tools/sift-workstation/)
 [![Rust + Postgres 17](https://img.shields.io/badge/Rust_%2B_Postgres_17-000.svg)](#architecture)

@@ -1,0 +1,29 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python syntax (ADWs)
+        run: python3 - <<'PY'
+import pathlib, py_compile, sys
+bad = []
+for p in pathlib.Path("adws").rglob("*.py"):
+    try: py_compile.compile(str(p), doraise=True)
+    except Exception as e: bad.append(f"{p}: {e}")
+for p in pathlib.Path("scripts").glob("*.py"):
+    try: py_compile.compile(str(p), doraise=True)
+    except Exception as e: bad.append(f"{p}: {e}")
+print("checked python files; problems:", bad)
+sys.exit(1 if bad else 0)
+PY
+      - name: Shell syntax (scripts/bin)
+        run: |
+          for f in scripts/*.sh bin/sb bin/es; do :; done
+          for f in scripts/*.sh; do bash -n "$f" && echo "ok $f"; done
+      - name: Required compliance files present
+        run: |
+          for f in LICENSE README.md docs/ACCURACY.md docs/architecture.svg docs/EVIDENCE.md; do
+            test -e "$f" && echo "ok $f" || { echo "MISSING $f"; exit 1; }
+          done

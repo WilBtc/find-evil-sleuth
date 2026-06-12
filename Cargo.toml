@@ -7,7 +7,7 @@ version      = "0.1.0"
 edition      = "2021"
 license      = "Apache-2.0"
 authors      = ["wilaroca"]
-repository   = "https://github.com/wilaroca2021/find-evil-sleuth"
+repository   = "https://github.com/WilBtc/find-evil-sleuth"
 
 [workspace.dependencies]
 tokio       = { version = "1.40", features = ["full"] }
