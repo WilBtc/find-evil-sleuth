@@ -5,22 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Python syntax (ADWs)
-        run: python3 - <<'PY'
-import pathlib, py_compile, sys
-bad = []
-for p in pathlib.Path("adws").rglob("*.py"):
-    try: py_compile.compile(str(p), doraise=True)
-    except Exception as e: bad.append(f"{p}: {e}")
-for p in pathlib.Path("scripts").glob("*.py"):
-    try: py_compile.compile(str(p), doraise=True)
-    except Exception as e: bad.append(f"{p}: {e}")
-print("checked python files; problems:", bad)
-sys.exit(1 if bad else 0)
-PY
-      - name: Shell syntax (scripts/bin)
+      - name: Python syntax (ADWs + scripts)
         run: |
-          for f in scripts/*.sh bin/sb bin/es; do :; done
+          python3 -m compileall -q adws scripts
+      - name: Shell syntax (scripts)
+        run: |
           for f in scripts/*.sh; do bash -n "$f" && echo "ok $f"; done
       - name: Required compliance files present
         run: |
