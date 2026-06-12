@@ -135,11 +135,21 @@ pub async fn case_detail(
     }
     timeline.sort_by_key(|e| e.timestamp());
 
+    let (confirmed_count, findings_count): (i64, i64) = sqlx::query_as(
+        "SELECT count(*) FILTER (WHERE validation_status = 'confirmed'), count(*) FROM findings WHERE case_id = $1",
+    )
+    .bind(&case_id)
+    .fetch_one(&state.pool)
+    .await
+    .unwrap_or((0, 0));
+
     let mut ctx = tera::Context::new();
     ctx.insert("case", &case);
     ctx.insert("timeline", &timeline);
     ctx.insert("tool_call_count", &tc_count);
     ctx.insert("correction_count", &sc_count);
+    ctx.insert("confirmed_count", &confirmed_count);
+    ctx.insert("findings_count", &findings_count);
 
     let body = state
         .tera

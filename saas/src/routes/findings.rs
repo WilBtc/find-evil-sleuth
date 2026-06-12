@@ -59,6 +59,7 @@ pub struct FindingsFilter {
     pub validation_status: Option<String>,
     pub specialist:        Option<String>,
     pub sort:              Option<String>,
+    pub q:                 Option<String>,
 }
 
 pub async fn findings_list(
@@ -92,59 +93,25 @@ pub async fn findings_list(
         _                  => "finding_id ASC",
     };
 
-    let findings: Vec<FindingRow> = if vs_filter.is_empty() && sp_filter.is_empty() {
-        sqlx::query_as::<_, FindingRow>(&format!(
-            r#"SELECT finding_id, case_id, specialist, claim, confidence,
-                      validation_status, mitre_technique, created_at
-               FROM findings
-               WHERE case_id = $1
-               ORDER BY {order_col}"#
-        ))
-        .bind(&case_id_val)
-        .fetch_all(&state.pool)
-        .await
-        .unwrap_or_default()
-    } else if vs_filter.is_empty() {
-        sqlx::query_as::<_, FindingRow>(&format!(
-            r#"SELECT finding_id, case_id, specialist, claim, confidence,
-                      validation_status, mitre_technique, created_at
-               FROM findings
-               WHERE case_id = $1 AND specialist = $2
-               ORDER BY {order_col}"#
-        ))
-        .bind(&case_id_val)
-        .bind(sp_filter)
-        .fetch_all(&state.pool)
-        .await
-        .unwrap_or_default()
-    } else if sp_filter.is_empty() {
-        sqlx::query_as::<_, FindingRow>(&format!(
-            r#"SELECT finding_id, case_id, specialist, claim, confidence,
-                      validation_status, mitre_technique, created_at
-               FROM findings
-               WHERE case_id = $1 AND validation_status = $2
-               ORDER BY {order_col}"#
-        ))
-        .bind(&case_id_val)
-        .bind(vs_filter)
-        .fetch_all(&state.pool)
-        .await
-        .unwrap_or_default()
-    } else {
-        sqlx::query_as::<_, FindingRow>(&format!(
-            r#"SELECT finding_id, case_id, specialist, claim, confidence,
-                      validation_status, mitre_technique, created_at
-               FROM findings
-               WHERE case_id = $1 AND validation_status = $2 AND specialist = $3
-               ORDER BY {order_col}"#
-        ))
-        .bind(&case_id_val)
-        .bind(vs_filter)
-        .bind(sp_filter)
-        .fetch_all(&state.pool)
-        .await
-        .unwrap_or_default()
-    };
+    let q_filter = filter.q.as_deref().unwrap_or("").trim().to_string();
+
+    let findings: Vec<FindingRow> = sqlx::query_as::<_, FindingRow>(&format!(
+        r#"SELECT finding_id, case_id, specialist, claim, confidence,
+                  validation_status, mitre_technique, created_at
+           FROM findings
+           WHERE case_id = $1
+             AND ($2 = '' OR validation_status = $2)
+             AND ($3 = '' OR specialist = $3)
+             AND ($4 = '' OR claim ILIKE '%' || $4 || '%' OR coalesce(mitre_technique,'') ILIKE '%' || $4 || '%')
+           ORDER BY {order_col}"#
+    ))
+    .bind(&case_id_val)
+    .bind(vs_filter)
+    .bind(sp_filter)
+    .bind(&q_filter)
+    .fetch_all(&state.pool)
+    .await
+    .unwrap_or_default();
 
     let distinct_specialists: Vec<(String,)> = sqlx::query_as(
         "SELECT DISTINCT specialist FROM findings WHERE case_id = $1 ORDER BY specialist",
@@ -157,6 +124,7 @@ pub async fn findings_list(
     let specialists: Vec<String> = distinct_specialists.into_iter().map(|(s,)| s).collect();
 
     let mut ctx = tera::Context::new();
+    ctx.insert("filter_q", &q_filter);
     ctx.insert("case_id",   &case_id_val);
     ctx.insert("case_name", &case_name);
     ctx.insert("case_status", &case_status);
@@ -208,9 +176,9 @@ pub async fn finding_detail(
     .unwrap_or(None);
 
     let validation_runs = sqlx::query_as::<_, ValidationRunRow>(
-        r#"SELECT run_id::text, started_at, result, diff
-           FROM validation_runs WHERE finding_id = $1
-           ORDER BY started_at DESC"#,
+        r#"SELECT history_id::text AS run_id, validated_at AS started_at, status AS result, NULL::jsonb AS diff
+           FROM validation_history WHERE finding_id = $1
+           ORDER BY validated_at DESC"#,
     )
     .bind(&finding_id)
     .fetch_all(&state.pool)
@@ -277,9 +245,9 @@ pub async fn finding_drawer(
     .unwrap_or(None);
 
     let validation_runs = sqlx::query_as::<_, ValidationRunRow>(
-        r#"SELECT run_id::text, started_at, result, diff
-           FROM validation_runs WHERE finding_id = $1
-           ORDER BY started_at DESC"#,
+        r#"SELECT history_id::text AS run_id, validated_at AS started_at, status AS result, NULL::jsonb AS diff
+           FROM validation_history WHERE finding_id = $1
+           ORDER BY validated_at DESC"#,
     )
     .bind(&finding_id)
     .fetch_all(&state.pool)

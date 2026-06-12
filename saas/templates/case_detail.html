@@ -32,7 +32,12 @@
 </div>
 
 {# ─── Quick metrics — editorial, not templated ────────────────────── #}
-<section class="surface px-8 py-7 mb-12 grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-12">
+<section class="surface px-8 py-7 mb-12 grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-12">
+  <div>
+    <div class="eyebrow mb-2">Confirmed findings</div>
+    <div class="num text-[44px] leading-none" style="color: var(--ok, #2e7d32);">{{ confirmed_count }}<span class="text-[20px]" style="color: var(--ink-quiet);"> / {{ findings_count }}</span></div>
+    <div class="text-[12px] mt-1" style="color: var(--ink-quiet);">validator-confirmed of total</div>
+  </div>
   <div>
     <div class="eyebrow mb-2">Tool calls</div>
     <div class="num text-[44px] leading-none">{{ tool_call_count }}</div>

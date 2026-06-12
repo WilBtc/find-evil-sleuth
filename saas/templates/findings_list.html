@@ -19,7 +19,7 @@
     <h1 class="display text-[clamp(28px,3.4vw,40px)]">Findings</h1>
     <p class="text-[14px] mt-2" style="color: var(--ink-mute);">
       <span class="num text-[18px]" style="color: var(--ink);">{{ total }}</span> total
-      {% if filter_status != "" or filter_specialist != "" %}<span style="color: var(--ink-quiet);">· filtered</span>{% endif %}
+      {% if filter_status != "" or filter_specialist != "" or filter_q != "" %}<span style="color: var(--ink-quiet);">· filtered</span>{% endif %}
       &nbsp;·&nbsp;every claim opens to its tool call.
     </p>
   </div>
@@ -65,7 +65,16 @@
     </select>
   </div>
 
-  {% if filter_status != "" or filter_specialist != "" %}
+  <div class="flex flex-col gap-1 grow">
+    <label class="eyebrow">Search</label>
+    <input type="text" name="q" value="{{ filter_q | default(value='') }}"
+           placeholder="IOC, claim text, MITRE technique…"
+           class="text-[13px] px-3 py-1.5 rounded border bg-transparent"
+           style="border-color: var(--line); color: var(--ink); min-width: 220px;"
+           onkeydown="if(event.key==='Enter'){this.form.submit()}">
+  </div>
+
+  {% if filter_status != "" or filter_specialist != "" or filter_q != "" %}
   <a href="/case/{{ case_id }}/findings" class="btn btn-ghost">Reset filters</a>
   {% endif %}
 </form>
@@ -77,13 +86,14 @@
         <th class="w-28">ID</th>
         <th>Claim</th>
         <th class="w-32">Specialist</th>
+        <th class="w-24">Confidence</th>
         <th class="w-28">MITRE</th>
         <th class="w-32">Validator</th>
       </tr>
     </thead>
     <tbody>
       {% if findings | length == 0 %}
-      <tr><td colspan="5" class="empty">No findings match this filter.</td></tr>
+      <tr><td colspan="6" class="empty">No findings match this filter.</td></tr>
       {% else %}
       {% for f in findings %}
       <tr class="row-link"
@@ -99,6 +109,7 @@
           <p class="leading-snug" style="color: var(--ink); max-width: 70ch;">{{ f.claim | truncate(length=180) }}</p>
         </td>
         <td class="id-mono" style="color: var(--ink-mute);">{{ f.specialist }}</td>
+        <td class="id-mono" style="color: var(--ink-quiet);">{{ f.confidence }}</td>
         <td>
           {% if f.mitre_technique %}<span class="id-mono" style="color: var(--clay-deep);">{{ f.mitre_technique }}</span>
           {% else %}<span style="color: var(--ink-quiet);">—</span>{% endif %}
