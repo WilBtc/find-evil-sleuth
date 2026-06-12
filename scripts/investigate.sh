@@ -42,4 +42,12 @@ echo >&2 "  case id  : $CASE_ID"
 echo >&2 "  model    : ${MODEL_DEFAULT:-claude-sonnet-4-6}"
 echo >&2 ""
 
-PYTHONPATH="$(pwd):${PYTHONPATH:-}" exec python3 adws/investigate.py "$CASE_DIR" "${EXTRA_ARGS[@]}"
+# Run under a resource-capped systemd slice so a runaway carve can never wedge the host.
+if command -v systemd-run >/dev/null 2>&1 && systemctl show sleuth.slice >/dev/null 2>&1; then
+    exec systemd-run --user --quiet --scope --slice=sleuth.slice \
+        -E PYTHONPATH="$(pwd):${PYTHONPATH:-}" \
+        python3 adws/investigate.py "$CASE_DIR" "${EXTRA_ARGS[@]}" 2>/dev/null \
+    || PYTHONPATH="$(pwd):${PYTHONPATH:-}" exec python3 adws/investigate.py "$CASE_DIR" "${EXTRA_ARGS[@]}"
+else
+    PYTHONPATH="$(pwd):${PYTHONPATH:-}" exec python3 adws/investigate.py "$CASE_DIR" "${EXTRA_ARGS[@]}"
+fi
