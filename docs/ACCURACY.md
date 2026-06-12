@@ -333,3 +333,35 @@ Disk forensics is materially harder to automate than network: the evidence conta
 and image size fight the sandbox, and key IOCs live in structured binary stores (OST, EVTX)
 rather than flat text. The infrastructure to close these gaps (OST + EVTX parsers in the
 pre-stage) is the documented next step.
+
+---
+
+## 10. Baseline Comparison — vs Protocol SIFT (the success metric)
+
+The hackathon success metric is *"fewer hallucinated findings than Protocol SIFT's
+baseline."* Protocol SIFT (teamdfir/protocol-sift, by Rob Lee) is a **Claude Code
+configuration** for the SANS SIFT Workstation: a global `CLAUDE.md` of behavioral rules,
+forensic-tool skill files, per-case `CLAUDE.md` templates, and PDF report tooling. Its
+guardrails are **instructional** — the agent runs SIFT tools directly via the shell, and
+read-only handling is a prompt-level request. It has **no finding-validation or
+re-execution stage**: a finding is whatever the model wrote.
+
+find-evil-sleuth attacks hallucination *structurally*, not by asking the model to behave:
+
+| Dimension | Protocol SIFT (baseline) | find-evil-sleuth |
+|-----------|--------------------------|------------------|
+| Tool guardrail | Prompt + permission rules; the agent **can** issue any shell command | **Architectural** — a `PreToolUse` hook blocks everything but `./bin/sb`; the Rust broker validates args (`pg_jsonschema`), runs each tool in rootless podman with seccomp + a read-only evidence mount. An unaudited or destructive tool call is **impossible**, not discouraged. |
+| Hallucination control | **None** — findings are the model's output, unverified | A **validator re-executes every finding's original tool call** and marks anything it cannot reproduce `refuted`; the report contains **only validator-confirmed findings**. Deterministic carves auto-confirm. |
+| Provenance | Markdown report | Every tool call + stdout BLAKE3 hash in a **Merkle-chained** Postgres hypertable; `es cite F-NNN` returns the full chain in <100 ms. |
+| Reproducibility | Stochastic (LLM chooses and runs tools) | IOC + technique extraction runs in **deterministic code** (carve → auto-confirm), independent of model availability/rate limits. |
+
+**Why this means fewer hallucinated findings, by construction:** in Protocol SIFT a
+hallucinated finding has nothing to stop it reaching the report. In find-evil-sleuth a
+claim only survives if the broker can re-run its exact tool call and reproduce it — so an
+unreproducible (hallucinated) finding is refuted and excluded. Our published runs carry
+**0 refuted findings in the final report set** because refuted claims are filtered out,
+and the independent benchmark (§9) shows the *confirmed* findings match external answer
+keys — including catching IOCs in the keys that are absent from the evidence.
+
+*(Protocol SIFT was inspected directly, not installed: its `install.sh` overwrites
+`~/.claude/`, which would clobber the live agent configuration this system depends on.)*
