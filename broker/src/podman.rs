@@ -206,8 +206,10 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
                 .replace('\'', "");
             let pre = "set +e; in='";
             let post = "'; out=/scratch/be; mkdir -p \"$out\"; \
-                case \"$in\" in *.E01|*.e01|*.Ex01|*.aff4) img_cat \"$in\" 2>/dev/null > /scratch/raw.dd; SRC=/scratch/raw.dd ;; *) SRC=\"$in\" ;; esac; \
-                { strings -n 6 \"$SRC\"; strings -e l -n 6 \"$SRC\"; } > \"$out/s.txt\" 2>/dev/null; \
+                case \"$in\" in \
+                  *.E01|*.e01|*.Ex01|*.aff4) { img_cat \"$in\" 2>/dev/null | strings -n 6; img_cat \"$in\" 2>/dev/null | strings -e l -n 6; } > \"$out/s.txt\" 2>/dev/null ;; \
+                  *) { strings -n 6 \"$in\"; strings -e l -n 6 \"$in\"; } > \"$out/s.txt\" 2>/dev/null ;; \
+                esac; \
                 echo '=== email ==='; grep -aoE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z][A-Za-z]+' \"$out/s.txt\" | sort | uniq -c | sort -rn | head -80; \
                 echo '=== ip ==='; grep -aoE '([0-9][0-9]?[0-9]?[.]){3}[0-9][0-9]?[0-9]?' \"$out/s.txt\" | sort | uniq -c | sort -rn | head -80; \
                 rm -f \"$out/s.txt\" /scratch/raw.dd";
@@ -220,7 +222,6 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
         "deep_carve" => {
             let pre = "set +e; in='";
             let post = "'; out=/scratch/dc; rm -rf \"$out\"; mkdir -p \"$out\"; \
-                case \"$in\" in *.E01|*.e01|*.Ex01|*.aff4) img_cat \"$in\" 2>/dev/null > $out/raw.dd; in=$out/raw.dd ;; esac; \
                 OFF=$(mmls \"$in\" 2>/dev/null | awk '/NTFS/ && !/Unallocated/ {if ($4+0>m){m=$4+0;o=$3}} END{print o}'); [ -z \"$OFF\" ] && OFF=0; \
                 fls -r -p -o \"$OFF\" \"$in\" 2>/dev/null > $out/files.txt; \
                 echo '=== email ==='; \
@@ -235,6 +236,9 @@ fn tool_argv(spec: &ToolSpec, args: &Value) -> Result<Vec<String>> {
                   icat -o \"$OFF\" \"$in\" \"$ino\" > $out/e.evtx 2>/dev/null; \
                   evtxexport -f text $out/e.evtx 2>/dev/null | grep -aoE '([0-9][0-9]?[0-9]?[.]){3}[0-9][0-9]?[0-9]?'; \
                 done | sort | uniq -c | sort -rn | head -40; \
+                echo '=== technique ==='; \
+                grep -iaE 'ccleaner|bleachbit|/eraser|sdelete|/wipe[.]|ccsetup|privazer' $out/files.txt 2>/dev/null | head -6 | sed 's#^#T1070|anti-forensic tool present: #'; \
+                grep -iaE 'google ?drive|googledrive|dropbox|onedrive|backup and sync|megasync' $out/files.txt 2>/dev/null | head -6 | sed 's#^#T1567|cloud-storage exfil client: #'; \
                 rm -rf $out";
             let target = args.get("image").and_then(|x| x.as_str())
                 .or_else(|| args.get("target").and_then(|x| x.as_str()))

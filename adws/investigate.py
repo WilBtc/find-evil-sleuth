@@ -362,7 +362,7 @@ class Investigator:
     def _record_carved_iocs(self, stdout, tcid, fname):
         """Record carved emails + IPs as findings citing the carve's tool_call so the
         validator can re-run the carve and confirm them (correct provenance)."""
-        emails, ips, seen = [], [], set()
+        emails, ips, techniques, seen = [], [], [], set()
         section = None
         for line in stdout.splitlines():
             l = line.strip()
@@ -370,6 +370,8 @@ class Investigator:
                 section = "email"; continue
             if l.startswith("=== ip"):
                 section = "ip"; continue
+            if l.startswith("=== technique"):
+                section = "technique"; continue
             if l.startswith("==="):
                 section = None; continue
             if section == "email":
@@ -380,11 +382,20 @@ class Investigator:
                 m = re.search(r"((?:[0-9]{1,3}\.){3}[0-9]{1,3})", l)
                 if m and m.group(1) not in seen and len(ips) < 20:
                     seen.add(m.group(1)); ips.append(m.group(1))
+            elif section == "technique":
+                if "|" in l and len(techniques) < 30:
+                    mitre, _, desc = l.partition("|")
+                    mitre, desc = mitre.strip(), desc.strip()
+                    key = (mitre, desc[:80])
+                    if re.match(r"^T\d{4}", mitre) and key not in seen:
+                        seen.add(key); techniques.append((mitre, desc))
         for em in emails:
             self._es_record("disk", "Email address " + em + " carved from evidence " + fname, tcid, "T1078")
         for ip in ips:
             self._es_record("disk", "IP address " + ip + " carved from evidence " + fname, tcid, "T1071")
-        log.info("  recorded %d email + %d ip IOC findings from %s", len(emails), len(ips), fname)
+        for mitre, desc in techniques:
+            self._es_record("disk", desc + " (evidence " + fname + ")", tcid, mitre)
+        log.info("  recorded %d email + %d ip + %d technique findings from %s", len(emails), len(ips), len(techniques), fname)
 
     def _es_record(self, spec, claim, tcid, mitre):
         try:

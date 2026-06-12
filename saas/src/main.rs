@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
         .route("/ping", get(|| async { "pong" }))
         .route(
             "/",
-            get(|| async { Redirect::temporary("/case/lone-wolf-1778168581") }),
+            get(|| async { Redirect::temporary("/cases") }),
         )
         .route("/cases", get(routes::cases_list))
         .route("/cases/partial", get(routes::cases_list_partial))

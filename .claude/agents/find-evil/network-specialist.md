@@ -125,10 +125,10 @@ Read and follow: `.claude/skills/find-evil/network-forensics/SKILL.md`
    - Run the output through an email regex ([A-Za-z0-9._%%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}).
      Record ONE finding per UNIQUE email address with the LITERAL address in the claim
      and the internal IP that sent/received it
-     (e.g. `claim: "Email account jcoachj@gmail.com used from 192.168.1.64 to send messages via webmail host mail.google.com"`).
+     (e.g. `claim: "Email account <address> used from <internal-ip> to send messages via webmail host <host>"`).
    - Record ONE finding per significant host pair from conv,ip with the LITERAL src and
      dst IPs and byte volume (top talkers AND every external endpoint), so header-only
-     IPs are captured (e.g. `claim: "Top talker 192.168.15.4 exchanged N bytes with external <ip>"`).
+     IPs are captured (e.g. `claim: "Top talker <internal-ip> exchanged N bytes with external <ip>"`).
    - Record the external host(s) that received the messages, by literal IP, with role.
 
 10. **Run zeek analysis**:
