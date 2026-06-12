@@ -35,8 +35,8 @@ Most agentic DFIR systems rely on prompt engineering to keep the agent in bounds
 
 ## Demo Video
 
-<!-- Replace with YouTube unlisted URL after 4.2.3 is complete -->
-**URL:** `https://youtu.be/PLACEHOLDER_REPLACE_AFTER_UPLOAD`
+**URL (in-repo, playable on GitHub):** https://github.com/WilBtc/find-evil-sleuth/blob/main/submission/demo.mp4
+<!-- Optional upgrade: upload a fresh take (showing the accuracy benchmark) to YouTube unlisted and paste the link here. -->
 
 - Duration: ≤5 minutes
 - Format: terminal screencast with audio narration
