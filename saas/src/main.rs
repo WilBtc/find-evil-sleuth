@@ -19,6 +19,7 @@ const THEATRE_TOGGLE: &str = "/.sleuth-saas-theatre";
 pub struct AppState {
     pub pool: PgPool,
     pub tera: Arc<Tera>,
+    pub db_url: String,
 }
 
 #[tokio::main]
@@ -31,6 +32,7 @@ async fn main() -> Result<()> {
     let state = AppState {
         pool: pool.clone(),
         tera: Arc::new(tera),
+        db_url: db_url(),
     };
 
     tokio::spawn(theatre_cron(pool));
@@ -105,18 +107,22 @@ fn home_path(suffix: &str) -> PathBuf {
     PathBuf::from(home).join(suffix.trim_start_matches('/'))
 }
 
-async fn db_connect() -> Result<PgPool> {
-    let url = env::var("DATABASE_URL").unwrap_or_else(|_| {
+pub fn db_url() -> String {
+    env::var("DATABASE_URL").unwrap_or_else(|_| {
         let host = env::var("PG_HOST").unwrap_or_else(|_| "127.0.0.1".into());
         let port = env::var("PG_PORT").unwrap_or_else(|_| "5532".into());
         let db   = env::var("PG_DB").unwrap_or_else(|_| "sleuth".into());
         let user = env::var("PG_USER").unwrap_or_else(|_| "sleuth".into());
         let pw   = env::var("PG_PASSWORD").unwrap_or_else(|_| "changeme-dev-only".into());
         format!("postgres://{user}:{pw}@{host}:{port}/{db}")
-    });
+    })
+}
+
+async fn db_connect() -> Result<PgPool> {
     PgPoolOptions::new()
-        .max_connections(4)
-        .connect(&url)
+        .max_connections(25)
+        .acquire_timeout(std::time::Duration::from_secs(10))
+        .connect(&db_url())
         .await
         .context("postgres connect")
 }

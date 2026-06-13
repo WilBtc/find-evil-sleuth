@@ -162,7 +162,7 @@ pub async fn case_events(
     State(state): State<AppState>,
     Path(case_id): Path<String>,
 ) -> Sse<Pin<Box<dyn Stream<Item = Result<Event, Infallible>> + Send>>> {
-    let pool = state.pool.clone();
+    let listen_url = state.db_url.clone();
     let (tx, rx) = mpsc::channel::<Result<Event, Infallible>>(32);
 
     // Send an immediate "hello" so the browser's EventSource fires onopen
@@ -172,7 +172,7 @@ pub async fn case_events(
         .try_send(Ok(Event::default().event("hello").data("connected")));
 
     tokio::spawn(async move {
-        let mut listener = match sqlx::postgres::PgListener::connect_with(&pool).await {
+        let mut listener = match sqlx::postgres::PgListener::connect(&listen_url).await {
             Ok(l) => l,
             Err(e) => {
                 let _ = tx
