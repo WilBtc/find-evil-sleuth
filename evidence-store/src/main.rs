@@ -10,6 +10,7 @@ mod db;
 mod findings;
 mod cite;
 mod worker;
+mod knowledge;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -51,6 +52,14 @@ enum Cmd {
         #[arg(long)]
         embeddings: bool,
     },
+    /// Query the DFIR knowledge base for technique/artifact grounding (specialist-facing).
+    Knowledge {
+        /// Query text: a technique, artifact, or incident-response question.
+        query: String,
+        #[arg(long, default_value_t = 5)] k: i64,
+    },
+    /// Ingest a DFIR reference corpus file into the knowledge base (operator-facing).
+    KnowledgeIngest { path: String },
 }
 
 #[tokio::main]
@@ -92,6 +101,12 @@ async fn main() -> Result<()> {
             } else {
                 anyhow::bail!("specify at least one worker flag (e.g. --embeddings)");
             }
+        }
+        Cmd::Knowledge { query, k } => {
+            knowledge::query(&pool, &query, k).await?;
+        }
+        Cmd::KnowledgeIngest { path } => {
+            knowledge::ingest(&pool, &path).await?;
         }
     }
     Ok(())

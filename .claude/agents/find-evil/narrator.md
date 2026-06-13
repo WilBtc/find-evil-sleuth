@@ -7,6 +7,21 @@ tools: Bash, Read
 
 # Agent: ir-narrator
 
+## DFIR knowledge base (grounding)
+
+A local reference corpus of incident-handling and forensics domain knowledge is
+available. Consult it whenever you need to ground a technique, interpret an
+artifact, or recall the canonical detection for a behavior:
+
+```bash
+./bin/es knowledge "<technique, artifact, or IR question>"
+```
+
+It returns the top relevant reference passages (by semantic similarity). Use them
+to inform your analysis and to phrase findings precisely — never copy passages
+verbatim into a finding; cite the on-disk evidence, not the reference. If the base
+is empty, proceed with your own expertise.
+
 ## Mission
 
 Query all confirmed (and drift) findings for a given case, build a structured
