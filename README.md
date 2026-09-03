@@ -1,11 +1,11 @@
 <div align="center">
 
-# 🔍 find-evil-sleuth
+# 🔍 SLEUTH
 
 ### Autonomous, tamper-evident DFIR on a Postgres substrate — from raw evidence to a cited report, with no human in the loop.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![CI](https://github.com/WilBtc/find-evil-sleuth/actions/workflows/ci.yml/badge.svg)](https://github.com/WilBtc/find-evil-sleuth/actions/workflows/ci.yml)
+[![CI](https://github.com/WilBtc/sleuth/actions/workflows/ci.yml/badge.svg)](https://github.com/WilBtc/sleuth/actions/workflows/ci.yml)
 [![SANS FIND EVIL! Hackathon](https://img.shields.io/badge/SANS-FIND_EVIL!_2026-c8102e.svg)](https://www.sans.org/)
 [![Built on SIFT](https://img.shields.io/badge/Built_on-SANS_SIFT-1a73e8.svg)](https://www.sans.org/tools/sift-workstation/)
 [![Rust + Postgres 17](https://img.shields.io/badge/Rust_%2B_Postgres_17-000.svg)](#architecture)
@@ -23,7 +23,7 @@ Every required turn-in item, mapped to its exact location so judges can verify c
 
 | # | Required item | Location |
 |---|---------------|----------|
-| 1 | Public code repository | **this repo** — https://github.com/WilBtc/find-evil-sleuth |
+| 1 | Public code repository | **this repo** — https://github.com/WilBtc/sleuth |
 | 2 | Open-source license (Apache-2.0) | [`LICENSE`](LICENSE) |
 | 3 | README with setup instructions | this file → [Quick Start](#-quick-start) |
 | 4 | Live deployment URL or step-by-step instructions | [Quick Start](#-quick-start) + [Persistent Inspector (SaaS)](#-persistent-inspector-saas) |
@@ -38,13 +38,13 @@ Every required turn-in item, mapped to its exact location so judges can verify c
 
 ## What it is
 
-**find-evil-sleuth** runs a complete digital-forensics and incident-response investigation autonomously — from raw disk, memory, and network evidence to a structured, fully-cited report — with no human steps in the loop.
+**SLEUTH** runs a complete digital-forensics and incident-response investigation autonomously — from raw disk, memory, and network evidence to a structured, fully-cited report — with no human steps in the loop.
 
 Three specialist subagents (disk, memory, network) drive the full SANS SIFT toolchain. Each produces `findings` rows in a Postgres 17 substrate, every one carrying a **BLAKE3-hashed artifact chain**, a **Merkle-chained audit trail**, and an **Apache AGE attack graph** node. A validator subagent re-executes *every* claim against the original evidence; an IR-narrator subagent turns confirmed findings into a report where every sentence carries a `[F-NNN]` citation back to its provenance.
 
 ### What makes it different
 
-Most agentic DFIR tools keep the model in-bounds with prompt engineering. find-evil-sleuth makes it **structurally impossible to misbehave**:
+Most agentic DFIR tools keep the model in-bounds with prompt engineering. SLEUTH makes it **structurally impossible to misbehave**:
 
 - 🔒 **The guardrail is an architecture, not an instruction.** A Bash `PreToolUse` hook exits 1 on any command that isn't `./bin/sb` (broker) or `./bin/es` (evidence-store) — enforced *before* the shell sees it. The agent literally cannot run `strings`, `grep`, or `tshark` directly.
 - 🦀 **A Rust broker mediates every tool call.** It validates arguments with `pg_jsonschema`, runs each forensic binary in a **rootless podman container** with a custom **seccomp** profile and a **read-only** evidence mount, and streams stdout/stderr straight into Postgres.
@@ -70,8 +70,8 @@ Most agentic DFIR tools keep the model in-bounds with prompt engineering. find-e
 
 ```bash
 # 1. Clone and start the Postgres substrate
-git clone https://github.com/WilBtc/find-evil-sleuth
-cd find-evil-sleuth
+git clone https://github.com/WilBtc/sleuth
+cd sleuth
 docker compose -f docker/compose.yaml up -d
 
 # 2. Fetch a SANS evidence case (downloads from digitalcorpora.org)
@@ -118,10 +118,10 @@ Screenshots: [`docs/saas-screenshots/`](docs/saas-screenshots/) · stop with `./
 
 ## 🧰 SIFT Integration
 
-The hackathon is built around the **SANS SIFT Workstation**, and find-evil-sleuth integrates the SIFT toolchain at two levels:
+The hackathon is built around the **SANS SIFT Workstation**, and SLEUTH integrates the SIFT toolchain at two levels:
 
 - **Per-tool sandboxed images** — each forensic binary (Sleuth Kit, Volatility 3, Plaso, tshark, Zeek, Suricata, YARA, bulk_extractor) runs in its own minimal rootless-podman image, registered in the broker's `tool_specs` table. This is the production path: tight sandboxing, fast startup, one container per tool call.
-- **Full SIFT distribution** — `find-evil-sleuth/sift-full` is the complete, **current** SANS SIFT Workstation (**2026-04-22**, Ubuntu 24.04, ~20 GB), extracted from the official SANS OVA via libguestfs (`virt-tar-out`) and imported as a container. Registered as the `mmls-sift-full` broker tool and reproducible via [`scripts/fetch-sift.sh`](scripts/fetch-sift.sh). Verified: Sleuth Kit 4.11.1, Volatility 3, Plaso/log2timeline 20260119. A maintained `digitalsleuth/sift-remnux` bundle is kept as the `sift-full:remnux-2024.10.19` fallback tag.
+- **Full SIFT distribution** — `SLEUTH/sift-full` is the complete, **current** SANS SIFT Workstation (**2026-04-22**, Ubuntu 24.04, ~20 GB), extracted from the official SANS OVA via libguestfs (`virt-tar-out`) and imported as a container. Registered as the `mmls-sift-full` broker tool and reproducible via [`scripts/fetch-sift.sh`](scripts/fetch-sift.sh). Verified: Sleuth Kit 4.11.1, Volatility 3, Plaso/log2timeline 20260119. A maintained `digitalsleuth/sift-remnux` bundle is kept as the `sift-full:remnux-2024.10.19` fallback tag.
 
 Every SIFT tool is reached **only** through the broker — validated, sandboxed, and recorded. No agent invokes a forensic binary directly.
 
