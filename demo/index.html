@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FIND EVIL — SLEUTH | Autonomous DFIR · Dark Cloud Corp</title>
-<meta name="description" content="find-evil-sleuth — autonomous, tamper-evident digital forensics & incident response: raw disk/memory/network evidence to a fully-cited report, no human in the loop. SANS FIND EVIL! 2026.">
+<title>SLEUTH — Autonomous DFIR App for AEGIS-AI | Dark Cloud Corp</title>
+<meta name="description" content="SLEUTH (find-evil-sleuth) — autonomous, tamper-evident digital forensics app: runs standalone or plugs into the AEGIS-AI SOC as its tamper-evident evidence broker. Raw disk/memory/network evidence to a fully-cited report, no human in the loop."
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;700;800;900&family=Newsreader:ital,opsz,wght@0,6..72,300;1,6..72,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -112,14 +112,14 @@ footer .gold{color:var(--gold)}
 </head>
 <body>
 <nav><div class="wrap">
-  <div class="brand"><span class="dot"></span> find-evil-sleuth <span style="color:var(--slag);font-weight:400">// Dark Cloud Corp</span></div>
+  <div class="brand"><span class="dot"></span> SLEUTH <span style="color:var(--slag);font-weight:400">// the DFIR app for AEGIS-AI</span></div>
   <div class="nav-r"><a href="https://wilbtc.github.io/darkcloudcorp/">Landing</a><a href="https://wilbtc.github.io/darkcloud-soc/">AEGIS-AI</a><a href="https://github.com/WilBtc/red-team-ops">Red Team</a><a href="https://github.com/WilBtc/cyber-consulting">Consulting</a></div>
 </div></nav>
 
 <header class="wrap">
-  <div class="tag">Autonomous DFIR — SANS "FIND EVIL!" 2026</div>
+  <div class="tag">Autonomous DFIR App — Standalone · Plugs into AEGIS-AI</div>
   <h1>Every claim<br><span class="accent">re-executed. Every byte cited.</span></h1>
-  <p class="lead">find-evil-sleuth runs a complete digital-forensics investigation autonomously — raw disk, memory, and network evidence to a structured, fully-cited report — with no human in the loop. The guardrail is an <b style="color:var(--green)">architecture, not an instruction</b>.</p>
+  <p class="lead"><b style="color:var(--green)">SLEUTH</b> runs a complete digital-forensics investigation autonomously — raw disk, memory, and network evidence to a structured, fully-cited report, with no human in the loop. Run it as a <b style="color:var(--cyan)">standalone app</b>, or plug it into <b style="color:var(--cyan)">AEGIS-AI</b> as the SOC's tamper-evident evidence broker. The guardrail is an <b style="color:var(--green)">architecture, not an instruction</b>.</p>
   <span class="demo-note">&#9888; INVESTIGATION STREAM SIMULATED &middot; ALL FIGURES MEASURED — SEE docs/ACCURACY.md</span>
 </header>
 
@@ -186,6 +186,25 @@ footer .gold{color:var(--gold)}
 
   <div class="grid2">
     <div class="panel">
+      <h3><span>Standalone Mode</span><span class="live">APP</span></h3>
+      <div class="guard">
+        <div class="row"><b>One command, full investigation</b> — <span style="font-family:var(--mono)">./scripts/investigate.sh ./cases/lone-wolf/</span>: triage → 3 specialists → validator → cited report.md</div>
+        <div class="row"><b>Browser inspector included</b> — compiled Rust SaaS on :8932: cases, findings, audit chain, attack graph. No notebook, no terminal.</div>
+        <div class="row"><b>Bring your own evidence</b> — SANS M57-Patents / LoneWolf today; any disk image, memory dump, or pcap tomorrow.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3><span>Plugin Mode — inside AEGIS-AI</span><span class="live">soc-dfir</span></h3>
+      <div class="guard">
+        <div class="row"><b>EvidenceBroker interface</b> — <span style="font-family:var(--mono)">soc-dfir</span> wraps SLEUTH as the sandboxed broker: the only thing allowed to touch the isolated capture store.</div>
+        <div class="row"><b>Findings become SOC evidence</b> — every <span style="font-family:var(--mono)">DfirFinding</span> carries a BLAKE3 <span style="font-family:var(--mono)">Citation</span>; <span style="font-family:var(--mono)">verify_citation</span> recomputes it against the live store — spoofed or stale findings are rejected, not trusted.</div>
+        <div class="row"><b>Agents that consume it</b> — agent-investigate escalates cases to SLEUTH; agent-hunt sweeps its indicators; citations ride the same keyed-BLAKE3 audit chain as every SOC action.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
       <h3><span>Hallucinations Caught — Self-Correction Log</span></h3>
       <table class="corr">
         <thead><tr><th>Specialist</th><th>Failed</th><th>Correction</th><th>Result</th></tr></thead>
@@ -241,6 +260,12 @@ footer .gold{color:var(--gold)}
           ┌──────▼──────┐
           │ <b>NARRATOR</b>   │  report.md — every sentence carries [F-NNN] citation
           └─────────────┘   best-of-N · Opus judge
+
+       PLUGIN MODE — inside the AEGIS-AI substrate:
+       agent-investigate / agent-hunt → soc-dfir::EvidenceBroker
+         → SLEUTH broker (isolated capture store, rootless podman)
+         → DfirFinding + BLAKE3 Citation → verify_citation()
+         → verified evidence joins the SOC's hash-chained audit trail
   </div>
 
   <div style="font-family:var(--display);font-size:15px;font-weight:700;margin-top:32px">Built on</div>
